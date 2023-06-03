@@ -5,6 +5,8 @@ import Keyv from 'keyv';
 import { ProxyAgent } from 'undici';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { BingImageCreator } from '@timefox/bic-sydney';
+import dotenv from 'dotenv';
+dotenv.config('.env');
 
 /**
  * https://stackoverflow.com/a/58326357
@@ -268,7 +270,7 @@ export default class BingAIClient {
 
             const previousMessages = invocationId === 0 ? [
                 {
-                    text: process.env.SYSTEM_MESSAGE,
+                    text: process.env.SYSTEM_MESSAGE || systemMessage,
                     author: 'system',
                 },
                 ...previousCachedMessages,
