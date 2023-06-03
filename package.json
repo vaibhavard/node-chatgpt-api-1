@@ -1,6 +1,6 @@
 {
   "name": "@waylaidwanderer/chatgpt-api",
-  "version": "1.36.3",
+  "version": "1.37.0",
   "description": "A ChatGPT implementation using the official ChatGPT model via OpenAI's API.",
   "main": "index.js",
   "bin": {
@@ -42,7 +42,7 @@
   "dependencies": {
     "@dqbd/tiktoken": "^1.0.2",
     "@fastify/cors": "^8.2.0",
-    "@keyv/sqlite": "^3.6.5",
+    "@timefox/bic-sydney": "^1.1.2",
     "@waylaidwanderer/chatgpt-api": "^1.36.3",
     "@waylaidwanderer/fastify-sse-v2": "^3.1.0",
     "@waylaidwanderer/fetch-event-source": "^3.0.1",
