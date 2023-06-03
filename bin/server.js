@@ -5,9 +5,12 @@ import { FastifySSEPlugin } from '@waylaidwanderer/fastify-sse-v2';
 import fs from 'fs';
 import { pathToFileURL } from 'url';
 import { KeyvFile } from 'keyv-file';
+import dotenv from 'dotenv';
 import ChatGPTClient from '../src/ChatGPTClient.js';
 import ChatGPTBrowserClient from '../src/ChatGPTBrowserClient.js';
 import BingAIClient from '../src/BingAIClient.js';
+
+dotenv.config('.env');
 
 const arg = process.argv.find(_arg => _arg.startsWith('--settings'));
 const path = arg?.split('=')[1] ?? './settings.js';
@@ -50,6 +53,16 @@ await server.register(cors, {
 });
 
 server.get('/ping', () => Date.now().toString());
+
+const allowedIps = process.env.ALLOWED_IPS.split(',');
+server.addHook('preHandler', (request, reply, done) => {
+    const { ip } = request;
+    if (allowedIps.includes(ip)) {
+        done();
+    } else {
+        reply.code(403).send({ error: 'Forbidden' });
+    }
+});
 
 server.post('/conversation', async (request, reply) => {
     const body = request.body || {};
