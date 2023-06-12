@@ -54,15 +54,18 @@ await server.register(cors, {
 
 server.get('/ping', () => Date.now().toString());
 
-const allowedIps = process.env.ALLOWED_IPS.split(',');
-server.addHook('preHandler', (request, reply, done) => {
-    const { ip } = request;
-    if (allowedIps.includes(ip)) {
-        done();
-    } else {
-        reply.code(403).send({ error: 'Forbidden' });
-    }
-});
+if (process.env.ENABLE_IP_WHITELIST === true)
+{
+    const allowedIps = process.env.ALLOWED_IPS.split(',');
+    server.addHook('preHandler', (request, reply, done) => {
+        const { ip } = request;
+        if (allowedIps.includes(ip)) {
+            done();
+        } else {
+            reply.code(403).send({ error: 'Forbidden' });
+        }
+    });
+}
 
 server.post('/conversation', async (request, reply) => {
     const body = request.body || {};
