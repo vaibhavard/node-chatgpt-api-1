@@ -1,4 +1,4 @@
-$envVars = Get-Content -Path "C:\\Users\\icepe\\Developer_Tools\\GPT\\node-chatgpt-api\\.env" | ConvertFrom-StringData
+$envVars = Get-Content -Path ".\\.env" | ConvertFrom-StringData
 
 $pandoraPath = $envVars.PANDORA_PATH
 $pandoraCommand = $envVars.PANDORA_COMMAND
