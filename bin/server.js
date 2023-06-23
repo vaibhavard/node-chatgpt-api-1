@@ -169,6 +169,30 @@ server.post('/conversation', async (request, reply) => {
     return reply.code(code).send({ error: message });
 });
 
+server.delete('/conversation/:messageId', (request, reply) => {
+    const { messageId } = request.params;
+    deleteConversation(messageId);
+    reply.send('Conversation deleted');
+});
+
+function deleteConversation(messageId) {
+    const cache = JSON.parse(fs.readFileSync('cache.json', 'utf8'));
+    const cacheArray = cache.cache;
+    let index = -1;
+    for (let i = 0; i < cacheArray.length; i++) {
+        if (cacheArray[i][0] === messageId) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index !== -1) {
+        cacheArray.splice(index, 1);
+
+        fs.writeFileSync('cache.json', JSON.stringify(cache), 'utf8');
+    }
+}
+
 server.listen({
     port: settings.apiOptions?.port || settings.port || 3000,
     host: settings.apiOptions?.host || 'localhost',
