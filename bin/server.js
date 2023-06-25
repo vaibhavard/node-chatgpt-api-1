@@ -174,14 +174,19 @@ server.post('/conversation', async (request, reply) => {
 
 server.delete('/conversation/:messageId', (request, reply) => {
     const { messageId } = request.params;
-    deleteConversation(messageId);
-    reply.send('Conversation deleted');
+    const error = deleteConversation(messageId);
+    if (error) {
+        reply.code(500).send(error);
+    } else {
+        reply.code(200).send('Conversation deleted');
+    }
 });
 
 function deleteConversation(messageId) {
     const cache = JSON.parse(fs.readFileSync('cache.json', 'utf8'));
     const cacheArray = cache.cache;
     let index = -1;
+    let result;
     for (let i = 0; i < cacheArray.length; i++) {
         if (cacheArray[i][0] === messageId) {
             index = i;
@@ -189,11 +194,14 @@ function deleteConversation(messageId) {
         }
     }
 
-    if (index !== -1) {
+    try {
+        if (index === -1) throw new Error('Message not found');
         cacheArray.splice(index, 1);
-
         fs.writeFileSync('cache.json', JSON.stringify(cache), 'utf8');
+    } catch (err) {
+        result = err;
     }
+    return result;
 }
 
 server.listen({
