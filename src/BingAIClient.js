@@ -6,6 +6,7 @@ import { ProxyAgent } from 'undici';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { BingImageCreator } from '@timefox/bic-sydney';
 import dotenv from 'dotenv';
+
 dotenv.config('.env');
 
 /**
@@ -459,7 +460,12 @@ export default class BingAIClient {
                             replySoFar = updatedText.replace(stopToken, '').trim();
                             return;
                         }
-                        replySoFar = updatedText;
+                        if (!(messages[0].topicChangerText
+                            || messages[0].offense === 'OffenseTrigger'
+                            || messages[0].contentOrigin === 'Apology')
+                        ) {
+                            replySoFar = updatedText;
+                        }
                         return;
                     }
                     case 2: {
