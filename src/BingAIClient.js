@@ -118,8 +118,20 @@ export default class BingAIClient {
         try {
             return JSON.parse(body);
         } catch (err) {
-            throw new Error(`/turing/conversation/create: failed to parse response body.\n${body}`);
+            throw new Error('/turing/conversation/create: failed to parse response body.\n');
         }
+    }
+
+    static async getNewCookie() {
+        try {
+            const response = await fetch('https://www.bing.com/turing/conversation/create', { method: 'GET' });
+            const header = response.headers.get('set-cookie');
+            const cookieValue = header.match(/MUIDB=([^;]+)/) ? header.match(/MUIDB=([^;]+)/)[1] : undefined;
+            return cookieValue;
+        } catch (error) {
+            console.error(error);
+        }
+        return undefined;
     }
 
     async createWebSocketConnection() {
@@ -162,11 +174,11 @@ export default class BingAIClient {
                     if (this.debug) {
                         console.debug('handshake established');
                     }
-                    // ping
-                    ws.bingPingInterval = setInterval(() => {
-                        ws.send('{"type":6}');
-                        // same message is sent back on/after 2nd time as a pong
-                    }, 15 * 1000);
+                    // // ping
+                    // ws.bingPingInterval = setInterval(() => {
+                    //     ws.send('{"type":6}');
+                    //     // same message is sent back on/after 2nd time as a pong
+                    // }, 15 * 1000);
                     resolve(ws);
                     return;
                 }
