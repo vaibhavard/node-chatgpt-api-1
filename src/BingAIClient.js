@@ -2,8 +2,7 @@ import './fetch-polyfill.js';
 import crypto from 'crypto';
 import WebSocket from 'ws';
 import Keyv from 'keyv';
-import { ProxyAgent } from 'undici';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import { Agent, setGlobalDispatcher } from 'undici';
 import { BingImageCreator } from '@timefox/bic-sydney';
 import dotenv from 'dotenv';
 
@@ -80,6 +79,7 @@ export default class BingAIClient {
     }
 
     async createNewConversation() {
+        setGlobalDispatcher(new Agent({ connect: { timeout: 60_000 } }));
         this.headers = {
             accept: 'application/json',
             'accept-language': 'en-US,en;q=0.9',
@@ -114,9 +114,6 @@ export default class BingAIClient {
         const fetchOptions = {
             headers: this.headers,
         };
-        if (this.options.proxy) {
-            fetchOptions.dispatcher = new ProxyAgent(this.options.proxy);
-        }
         const response = await fetch(`${this.options.host}/turing/conversation/create`, fetchOptions);
         const body = await response.text();
         try {
@@ -140,12 +137,7 @@ export default class BingAIClient {
 
     async createWebSocketConnection() {
         return new Promise((resolve, reject) => {
-            let agent;
-            if (this.options.proxy) {
-                agent = new HttpsProxyAgent(this.options.proxy);
-            }
-
-            const ws = new WebSocket('wss://sydney.bing.com/sydney/ChatHub', { agent, headers: this.headers });
+            const ws = new WebSocket('wss://sydney.bing.com/sydney/ChatHub', { headers: this.headers });
 
             ws.on('error', err => reject(err));
 
@@ -217,10 +209,10 @@ export default class BingAIClient {
         } = opts;
 
         const {
-            toneStyle = 'balanced', // or creative, precise, fast
+            toneStyle = 'creative', // or creative, precise, fast
             invocationId = 0,
             systemMessage,
-            context,
+            context = process.env.CONTEXT,
             parentMessageId = jailbreakConversationId === true ? crypto.randomUUID() : null,
             abortController = new AbortController(),
         } = opts;
@@ -326,6 +318,7 @@ export default class BingAIClient {
 
         ws.on('error', (error) => {
             console.error(error);
+            console.error(error.stack);
             abortController.abort();
         });
 
