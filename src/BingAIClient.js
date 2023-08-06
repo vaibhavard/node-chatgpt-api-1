@@ -212,7 +212,7 @@ export default class BingAIClient {
             toneStyle = 'creative', // or creative, precise, fast
             invocationId = 0,
             systemMessage,
-            context = process.env.CONTEXT,
+            context = jailbreakConversationId ? process.env.CONTEXT : null,
             parentMessageId = jailbreakConversationId === true ? crypto.randomUUID() : null,
             abortController = new AbortController(),
         } = opts;
