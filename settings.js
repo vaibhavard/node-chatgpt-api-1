@@ -59,6 +59,8 @@ export default {
         },
         // (Optional) Set to true to enable `console.debug()` logging
         debug: false,
+        // Set to true to let AI only generate text in base64
+        useBase64: false,
     },
     chatGptBrowserClient: {
         // (Optional) Support for a reverse proxy for the conversation endpoint (private API server).

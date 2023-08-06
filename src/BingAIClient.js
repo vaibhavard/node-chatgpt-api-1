@@ -2,7 +2,7 @@ import './fetch-polyfill.js';
 import crypto from 'crypto';
 import WebSocket from 'ws';
 import Keyv from 'keyv';
-import { Agent, setGlobalDispatcher } from 'undici';
+import { Agent } from 'undici';
 import { BingImageCreator } from '@timefox/bic-sydney';
 import dotenv from 'dotenv';
 
@@ -79,7 +79,6 @@ export default class BingAIClient {
     }
 
     async createNewConversation() {
-        setGlobalDispatcher(new Agent({ connect: { timeout: 60_000 } }));
         this.headers = {
             accept: 'application/json',
             'accept-language': 'en-US,en;q=0.9',
@@ -114,6 +113,7 @@ export default class BingAIClient {
         const fetchOptions = {
             headers: this.headers,
         };
+        fetchOptions.dispatcher = new Agent({ connect: { timeout: 60_000 } });
         const response = await fetch(`${this.options.host}/turing/conversation/create`, fetchOptions);
         const body = await response.text();
         try {
@@ -273,7 +273,9 @@ export default class BingAIClient {
 
             const previousMessages = invocationId === 0 ? [
                 {
-                    text: process.env.SYSTEM_MESSAGE || systemMessage,
+                    text: this.options.useBase64
+                        ? process.env.SYSTEM_MESSAGE + process.env.SYSTEM_MESSAGE_BASE64 : process.env.SYSTEM_MESSAGE
+                    || systemMessage,
                     author: 'system',
                 },
                 ...previousCachedMessages,
