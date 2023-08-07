@@ -135,6 +135,48 @@ export default class BingAIClient {
         return undefined;
     }
 
+    async uploadImage(imageBase64) {
+        try {
+            const knowledgeRequestBody = {
+                imageInfo: {},
+                knowledgeRequest: {
+                    invokedSkills: ['ImageById'],
+                    subscriptionId: 'Bing.Chat.Multimodal',
+                    invokedSkillsRequestData: { enableFaceBlur: true }, // enableFaceBlur has to be enabled, or you won't get a processedBlobId
+                    convoData: { convoid: '', convotone: 'Creative' },
+                },
+            };
+
+            const bodyVariable = '------WebKitFormBoundaryddtA5v1R5MVXYpKW\r\n'
+            + 'Content-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
+            + `${JSON.stringify(knowledgeRequestBody)}\r\n`
+            + '------WebKitFormBoundaryddtA5v1R5MVXYpKW\r\n'
+            + 'Content-Disposition: form-data; name="imageBase64"\r\n\r\n'
+            + `/${imageBase64}\r\n`
+            + '------WebKitFormBoundaryddtA5v1R5MVXYpKW--\r\n';
+
+            const response = await fetch('https://www.bing.com/images/kblob', {
+                headers: {
+                    accept: '*/*',
+                    'content-type': 'multipart/form-data;',
+                    cookie: this.options.cookies || `_U=${this.options.userToken}`,
+                    Referer: 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx',
+                    'Referrer-Policy': 'origin-when-cross-origin',
+                },
+                body: bodyVariable,
+                method: 'POST',
+            });
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data);
+            } else {
+                throw new Error(`HTTP error! Error: ${response.error}, status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     async createWebSocketConnection() {
         return new Promise((resolve, reject) => {
             const ws = new WebSocket('wss://sydney.bing.com/sydney/ChatHub', { headers: this.headers });
@@ -170,11 +212,11 @@ export default class BingAIClient {
                     if (this.debug) {
                         console.debug('handshake established');
                     }
-                    // // ping
-                    // ws.bingPingInterval = setInterval(() => {
-                    //     ws.send('{"type":6}');
-                    //     // same message is sent back on/after 2nd time as a pong
-                    // }, 15 * 1000);
+                    // ping
+                    ws.bingPingInterval = setInterval(() => {
+                        ws.send('{"type":6}');
+                        // same message is sent back on/after 2nd time as a pong
+                    }, 15 * 1000);
                     resolve(ws);
                     return;
                 }
@@ -356,25 +398,58 @@ export default class BingAIClient {
                         'disable_emoji_spoken_text',
                         'responsible_ai_policy_235',
                         'enablemm',
-                        toneOption,
-                        'dtappid',
-                        'cricinfo',
-                        'cricinfov2',
                         'dv3sugg',
-                        'nojbfedge',
+                        'autosave',
+                        'iyxapbing',
+                        'iycapbing',
+                        toneOption,
+                        'clgalileo',
                         ...((toneStyle === 'creative' && this.options.features.genImage) ? ['gencontentv3'] : []),
+                        'fluxsrtrunc',
+                        'fluxtrunc',
+                        'fluxv1',
+                        'rai278',
+                        'replaceurl',
+                        'savemem',
+                        'savememfilter',
+                        'eredirecturl',
+                        'nojbfedge', // Not included in standard message, but won't work without.
+                    ],
+                    allowedMessageTypes: [
+                        'ActionRequest',
+                        'Chat',
+                        'Context',
+                        'InternalSearchQuery',
+                        'InternalSearchResult',
+                        // 'Disengage', unwanted
+                        'InternalLoaderMessage',
+                        'Progress',
+                        'RenderCardRequest',
+                        // 'AdsQuery', unwanted
+                        'SemanticSerp',
+                        'GenerateContentQuery',
+                        'SearchQuery',
                     ],
                     sliceIds: [
-                        '222dtappid',
-                        '225cricinfo',
-                        '224locals0',
+                        'abv2',
+                        'srdicton',
+                        'convcssclick',
+                        'stylewv2',
+                        'contctxp2tf',
+                        '802fluxv1pc_a',
+                        '806log2sphs0',
+                        '727savemem',
+                        '277teditgnds0',
+                        '207hlthgrds0',
                     ],
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
                     message: {
+                        // imageUrl: 'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ',
+                        // originalImageUrl: 'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A',
                         author: 'user',
                         text: messageText,
-                        messageType: jailbreakConversationId ? 'SearchQuery' : 'Chat',
+                        messageType: 'Chat',
                     },
                     conversationSignature,
                     participant: {
@@ -465,6 +540,13 @@ export default class BingAIClient {
                                 bicIframe.isError = true;
                                 return error.message;
                             });
+                            return;
+                        }
+                        // Usable later when displaying internal processes, but should be discarded for now.
+                        if (messages[0]?.messageType === 'InternalLoaderMessage'
+                            || messages[0]?.messageType === 'InternalSearchQuery'
+                            || messages[0]?.messageType === 'InternalSearchResult'
+                            || messages[0]?.messageType === 'GenerateContentQuery') {
                             return;
                         }
                         const updatedText = messages[0].text;
