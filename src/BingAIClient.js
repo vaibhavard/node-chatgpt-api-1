@@ -123,6 +123,11 @@ export default class BingAIClient {
         }
     }
 
+    /**
+     * Method to obtain a new cookie as an anonymous user. Excessive use may result in a temporary IP ban, so a usual user cookie should be preferred.
+     * However to remedy a potential temporary ban you may delete the "ANON" cookie in the browser storage.
+     * @returns A new cookie. May however be less usable than a regular cookie.
+     */
     static async getNewCookie() {
         try {
             const response = await fetch('https://www.bing.com/turing/conversation/create', { method: 'GET' });
@@ -135,7 +140,17 @@ export default class BingAIClient {
         return undefined;
     }
 
+    /**
+     * Method to upload image to blob storage to later be incorporated in the user message.
+     * The returned "blobId" is used in the originalImageUrl like this:
+     * originalImageUrl: 'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
+     * The returned "processBlobId" is used in the imageUrl like this:
+     * imageUrl: 'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
+     * @param {string} imageBase64 The base64 string of the image to upload to blob storage.
+     * @returns {object} An object containing the "blobId" and "processBlobId" for the image.
+     */
     async uploadImage(imageBase64) {
+        let data;
         try {
             const knowledgeRequestBody = {
                 imageInfo: {},
@@ -143,7 +158,7 @@ export default class BingAIClient {
                     invokedSkills: ['ImageById'],
                     subscriptionId: 'Bing.Chat.Multimodal',
                     invokedSkillsRequestData: { enableFaceBlur: true }, // enableFaceBlur has to be enabled, or you won't get a processedBlobId
-                    convoData: { convoid: '', convotone: 'Creative' },
+                    convoData: { convoid: '', convotone: 'Creative' }, // convoId seems to be irrelevant
                 },
             };
 
@@ -166,8 +181,9 @@ export default class BingAIClient {
                 body: bodyVariable,
                 method: 'POST',
             });
+
             if (response.ok) {
-                const data = await response.json();
+                data = await response.json();
                 console.log(data);
             } else {
                 throw new Error(`HTTP error! Error: ${response.error}, status: ${response.status}`);
@@ -175,6 +191,8 @@ export default class BingAIClient {
         } catch (error) {
             console.error(error);
         }
+
+        return data;
     }
 
     async createWebSocketConnection() {
@@ -187,7 +205,7 @@ export default class BingAIClient {
                 if (this.debug) {
                     console.debug('performing handshake');
                 }
-                ws.send('{"protocol":"json","version":1}');
+                ws.send('{"protocol":"json","version":1}\u001E');
             });
 
             ws.on('close', () => {
@@ -197,7 +215,7 @@ export default class BingAIClient {
             });
 
             ws.on('message', (data) => {
-                const objects = data.toString().split('');
+                const objects = data.toString().split('\u001E');
                 const messages = objects.map((object) => {
                     try {
                         return JSON.parse(object);
@@ -214,7 +232,7 @@ export default class BingAIClient {
                     }
                     // ping
                     ws.bingPingInterval = setInterval(() => {
-                        ws.send('{"type":6}');
+                        ws.send('{"type":6}\u001E');
                         // same message is sent back on/after 2nd time as a pong
                     }, 15 * 1000);
                     resolve(ws);
@@ -508,7 +526,7 @@ export default class BingAIClient {
 
             let bicIframe;
             ws.on('message', async (data) => {
-                const objects = data.toString().split('');
+                const objects = data.toString().split('\u001E');
                 const events = objects.map((object) => {
                     try {
                         return JSON.parse(object);
@@ -675,7 +693,7 @@ export default class BingAIClient {
             console.debug(messageJson);
             console.debug('\n\n\n\n');
         }
-        ws.send(`${messageJson}`);
+        ws.send(`${messageJson}\u001E`);
 
         const {
             message: reply,
