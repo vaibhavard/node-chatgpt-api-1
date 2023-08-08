@@ -444,7 +444,7 @@ export default class BingAIClient {
                         'Progress',
                         // 'RenderCardRequest', not useful
                         // 'AdsQuery', unwanted
-                        'SemanticSerp',
+                        // 'SemanticSerp',// usually not encountered, related to semantic web search
                         'GenerateContentQuery',
                         'SearchQuery',
                     ],
