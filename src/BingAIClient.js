@@ -417,7 +417,7 @@ export default class BingAIClient {
                         'responsible_ai_policy_235',
                         'enablemm',
                         'dv3sugg',
-                        'autosave',
+                        // 'autosave', // Saves conversations to vanilla bing conversation history
                         'iyxapbing',
                         'iycapbing',
                         toneOption,
@@ -428,8 +428,8 @@ export default class BingAIClient {
                         'fluxv1',
                         'rai278',
                         'replaceurl',
-                        'savemem',
-                        'savememfilter',
+                        // 'savemem', // Saves conversations to vanilla bing conversation history
+                        // 'savememfilter', // Saves conversations to vanilla bing conversation history
                         'eredirecturl',
                         'nojbfedge', // Not included in standard message, but won't work without.
                     ],
