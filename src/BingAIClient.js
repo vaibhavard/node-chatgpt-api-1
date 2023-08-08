@@ -564,7 +564,8 @@ export default class BingAIClient {
                         if (messages[0]?.messageType === 'InternalLoaderMessage'
                             || messages[0]?.messageType === 'InternalSearchQuery'
                             || messages[0]?.messageType === 'InternalSearchResult'
-                            || messages[0]?.messageType === 'GenerateContentQuery') {
+                            || messages[0]?.messageType === 'GenerateContentQuery'
+                            || messages[0]?.messageType === 'RenderCardRequest') {
                             return;
                         }
                         const updatedText = messages[0].text;
