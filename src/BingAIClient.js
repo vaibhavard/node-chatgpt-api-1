@@ -442,7 +442,7 @@ export default class BingAIClient {
                         // 'Disengage', unwanted
                         'InternalLoaderMessage',
                         'Progress',
-                        'RenderCardRequest',
+                        // 'RenderCardRequest', not useful
                         // 'AdsQuery', unwanted
                         'SemanticSerp',
                         'GenerateContentQuery',
