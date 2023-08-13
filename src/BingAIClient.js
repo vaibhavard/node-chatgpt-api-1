@@ -144,6 +144,32 @@ export default class BingAIClient {
     }
 
     /**
+     * Method to obtain base64 string of the image from the supplied URL.
+     * To be used when uploading an image for image recognition.
+     * @param {string} imageUrl URL of the image to convert to base64 string.
+     * @returns Base64 string of the image from the supplied URL.
+     */
+    static async getBase64FromImageUrl(imageUrl) {
+        let base64String;
+        try {
+            const response = await fetch(imageUrl, { method: 'GET' });
+
+            if (response.ok) {
+                const imageBlob = await response.blob();
+                const arrayBuffer = await imageBlob.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                base64String = buffer.toString('base64');
+                console.log(base64String);
+            } else {
+                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        return base64String;
+    }
+
+    /**
      * Method to upload image to blob storage to later be incorporated in the user message.
      * The returned "blobId" is used in the originalImageUrl like this:
      * originalImageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
@@ -184,7 +210,6 @@ export default class BingAIClient {
                 body: bodyVariable,
                 method: 'POST',
             });
-
             if (response.ok) {
                 data = await response.json();
                 console.log(data);
