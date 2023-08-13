@@ -108,12 +108,15 @@ export default class BingAIClient {
             ...(this.options.xForwardedFor ? { 'x-forwarded-for': this.options.xForwardedFor } : {}),
         };
         // filter undefined values
-        this.headers = Object.fromEntries(Object.entries(this.headers).filter(([, value]) => value !== undefined));
+        this.headers = Object.fromEntries(
+            Object.entries(this.headers)
+                .filter(([, value]) => value !== undefined),
+        );
 
         const fetchOptions = {
             headers: this.headers,
         };
-        fetchOptions.dispatcher = new Agent({ connect: { timeout: 60_000 } });
+        fetchOptions.dispatcher = new Agent({ connect: { timeout: 30_000 } });
         const response = await fetch(`${this.options.host}/turing/conversation/create`, fetchOptions);
         const body = await response.text();
         try {
@@ -143,9 +146,9 @@ export default class BingAIClient {
     /**
      * Method to upload image to blob storage to later be incorporated in the user message.
      * The returned "blobId" is used in the originalImageUrl like this:
-     * originalImageUrl: 'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
+     * originalImageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
      * The returned "processBlobId" is used in the imageUrl like this:
-     * imageUrl: 'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
+     * imageUrl:            'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
      * @param {string} imageBase64 The base64 string of the image to upload to blob storage.
      * @returns {object} An object containing the "blobId" and "processBlobId" for the image.
      */
@@ -186,7 +189,7 @@ export default class BingAIClient {
                 data = await response.json();
                 console.log(data);
             } else {
-                throw new Error(`HTTP error! Error: ${response.error}, status: ${response.status}`);
+                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
             }
         } catch (error) {
             console.error(error);
