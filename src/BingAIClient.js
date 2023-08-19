@@ -615,9 +615,6 @@ export default class BingAIClient {
                         ) {
                             replySoFar = updatedText;
                         }
-                        if (this.options.useBase64) {
-                            delete messages[0].suggestedResponses;
-                        }
                         return;
                     }
                     case 2: {
@@ -689,6 +686,9 @@ export default class BingAIClient {
                                 eventMessage.text += `<br>${imgIframe}`;
                                 eventMessage.adaptiveCards[0].body[0].text = eventMessage.text;
                             }
+                        }
+                        if (this.options.useBase64 && eventMessage.suggestedResponses) {
+                            delete eventMessage.suggestedResponses;
                         }
                         resolve({
                             message: eventMessage,
