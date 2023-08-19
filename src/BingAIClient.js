@@ -293,21 +293,15 @@ export default class BingAIClient {
             conversationId,
             conversationSignature,
             clientId,
-            onProgress,
         } = opts;
 
         const {
-            toneStyle = 'creative', // or creative, precise, fast
             invocationId = 0,
             systemMessage,
             context = jailbreakConversationId ? process.env.CONTEXT : null,
             parentMessageId = jailbreakConversationId === true ? crypto.randomUUID() : null,
             abortController = new AbortController(),
         } = opts;
-
-        if (typeof onProgress !== 'function') {
-            onProgress = () => { };
-        }
 
         if (jailbreakConversationId || !conversationSignature || !conversationId || !clientId) {
             const createNewConversationResponse = await this.createNewConversation();
@@ -333,10 +327,6 @@ export default class BingAIClient {
                 clientId,
             } = createNewConversationResponse);
         }
-
-        // Due to this jailbreak, the AI will occasionally start responding as the user. It only happens rarely (and happens with the non-jailbroken Bing too), but since we are handling conversations ourselves now, we can use this system to ignore the part of the generated message that is replying as the user.
-        // TODO: probably removable now we're using `[user](#message)` instead of `User:`
-        const stopToken = '\n\n[user](#message)';
 
         if (jailbreakConversationId === true) {
             jailbreakConversationId = crypto.randomUUID();
@@ -412,6 +402,97 @@ export default class BingAIClient {
             abortController.abort();
         });
 
+        const userWebsocketRequest = this.createUserWebsocketRequest(
+            message,
+            invocationId,
+            jailbreakConversationId,
+            conversationSignature,
+            clientId,
+            conversationId,
+        );
+
+        if (previousMessagesFormatted) {
+            userWebsocketRequest.arguments[0].previousMessages.push({
+                author: 'user',
+                description: previousMessagesFormatted,
+                contextType: 'WebPage',
+                messageType: 'Context',
+                messageId: 'discover-web--page-ping-mriduna-----',
+            });
+        }
+
+        // simulates document summary function on Edge's Bing sidebar
+        // unknown character limit, at least up to 7k
+        if (!jailbreakConversationId && context) {
+            userWebsocketRequest.arguments[0].previousMessages.push({
+                author: 'user',
+                description: context,
+                contextType: 'WebPage',
+                messageType: 'Context',
+                messageId: 'discover-web--page-ping-mriduna-----',
+            });
+        }
+
+        if (userWebsocketRequest.arguments[0].previousMessages.length === 0) {
+            delete userWebsocketRequest.arguments[0].previousMessages;
+        }
+        const messagePromise = this.createMessagePromise(ws, abortController, opts);
+
+        const messageJson = JSON.stringify(userWebsocketRequest);
+        if (this.debug) {
+            console.debug(messageJson);
+            console.debug('\n\n\n\n');
+        }
+        ws.send(`${messageJson}\u001E`);
+
+        const {
+            message: reply,
+            conversationExpiryTime,
+        } = await messagePromise;
+
+        const replyMessage = {
+            id: crypto.randomUUID(),
+            parentMessageId: userMessage.id,
+            role: 'Bing',
+            message: reply.text,
+            details: reply,
+        };
+        if (jailbreakConversationId) {
+            conversation.messages.push(replyMessage);
+            await this.conversationsCache.set(conversationKey, conversation);
+        }
+
+        const returnData = {
+            conversationId,
+            conversationSignature,
+            clientId,
+            invocationId: invocationId + 1,
+            conversationExpiryTime,
+            response: reply.text,
+            details: reply,
+        };
+
+        if (jailbreakConversationId) {
+            returnData.jailbreakConversationId = jailbreakConversationId;
+            returnData.parentMessageId = replyMessage.parentMessageId;
+            returnData.messageId = replyMessage.id;
+        }
+
+        return returnData;
+    }
+
+    /**
+     * Creates an object that can be used to send a user message through the websocket.
+     * @param {Object} message The message parameter of the "sendMessage" method, containing the message the user sent.
+     * @param {Number} invocationId The index of the user message.
+     * @param {String} jailbreakConversationId A random GUID.
+     * @param {String} conversationSignature Unique singature for each user message.
+     * @param {String} clientId Unique clientId that is constant.
+     * @param {*} conversationId Unique id for each user message.
+     * @returns {Object} Object that contains all necessary properties for sending the user message.
+     */
+    createUserWebsocketRequest(message, invocationId, jailbreakConversationId, conversationSignature, clientId, conversationId) {
+        const toneStyle = 'creative';
         let toneOption;
         if (toneStyle === 'creative') {
             toneOption = 'h3imaginative';
@@ -434,7 +515,7 @@ export default class BingAIClient {
         } else {
             messageText = message;
         }
-        const obj = {
+        const userWebsocketRequest = {
             arguments: [
                 {
                     source: 'cib',
@@ -510,32 +591,20 @@ export default class BingAIClient {
             type: 4,
         };
 
-        if (previousMessagesFormatted) {
-            obj.arguments[0].previousMessages.push({
-                author: 'user',
-                description: previousMessagesFormatted,
-                contextType: 'WebPage',
-                messageType: 'Context',
-                messageId: 'discover-web--page-ping-mriduna-----',
-            });
-        }
+        return userWebsocketRequest;
+    }
 
-        // simulates document summary function on Edge's Bing sidebar
-        // unknown character limit, at least up to 7k
-        if (!jailbreakConversationId && context) {
-            obj.arguments[0].previousMessages.push({
-                author: 'user',
-                description: context,
-                contextType: 'WebPage',
-                messageType: 'Context',
-                messageId: 'discover-web--page-ping-mriduna-----',
-            });
+    /**
+     * Used for creating the reply from the AI.
+     * @param {WebSocket} ws The websocket the listener for the "message" even should be declared for.
+     * @param {AbortController} abortController Used to abort the request when and abort event is sent.
+     * @param {Object} opts Parameter of "sendMessage" method containing various properties.
+     * @returns {Promise} A new message promise that contains the final reply.
+     */
+    createMessagePromise(ws, abortController, opts) {
+        if (typeof opts.onProgress !== 'function') {
+            opts.onProgress = () => { };
         }
-
-        if (obj.arguments[0].previousMessages.length === 0) {
-            delete obj.arguments[0].previousMessages;
-        }
-
         const messagePromise = new Promise((resolve, reject) => {
             let replySoFar = '';
             let stopTokenFound = false;
@@ -576,13 +645,13 @@ export default class BingAIClient {
                             return;
                         }
                         if (messages[0]?.contentType === 'IMAGE') {
-                            // You will never get a message of this type without 'gencontentv3' being on.
+                        // You will never get a message of this type without 'gencontentv3' being on.
                             bicIframe = this.bic.genImageIframeSsr(
                                 messages[0].text,
                                 messages[0].messageId,
-                                progress => (progress?.contentIframe ? onProgress(progress?.contentIframe) : null),
+                                progress => (progress?.contentIframe ? opts.onProgress(progress?.contentIframe) : null),
                             ).catch((error) => {
-                                onProgress(error.message);
+                                opts.onProgress(error.message);
                                 bicIframe.isError = true;
                                 return error.message;
                             });
@@ -590,10 +659,10 @@ export default class BingAIClient {
                         }
                         // Usable later when displaying internal processes, but should be discarded for now.
                         if (messages[0]?.messageType === 'InternalLoaderMessage'
-                            || messages[0]?.messageType === 'InternalSearchQuery'
-                            || messages[0]?.messageType === 'InternalSearchResult'
-                            || messages[0]?.messageType === 'GenerateContentQuery'
-                            || messages[0]?.messageType === 'RenderCardRequest') {
+                        || messages[0]?.messageType === 'InternalSearchQuery'
+                        || messages[0]?.messageType === 'InternalSearchResult'
+                        || messages[0]?.messageType === 'GenerateContentQuery'
+                        || messages[0]?.messageType === 'RenderCardRequest') {
                             return;
                         }
                         const updatedText = messages[0].text;
@@ -602,7 +671,8 @@ export default class BingAIClient {
                         }
                         // get the difference between the current text and the previous text
                         const difference = updatedText.substring(replySoFar.length);
-                        onProgress(difference);
+                        opts.onProgress(difference);
+                        const stopToken = '\n\n[user](#message)';
                         if (updatedText.trim().endsWith(stopToken)) {
                             stopTokenFound = true;
                             // remove stop token from updated text
@@ -610,8 +680,8 @@ export default class BingAIClient {
                             return;
                         }
                         if (!(messages[0].topicChangerText
-                            || messages[0].offense === 'OffenseTrigger'
-                            || messages[0].contentOrigin === 'Apology')
+                        || messages[0].offense === 'OffenseTrigger'
+                        || messages[0].contentOrigin === 'Apology')
                         ) {
                             replySoFar = updatedText;
                         }
@@ -654,13 +724,13 @@ export default class BingAIClient {
                         }
                         // The moderation filter triggered, so just return the text we have so far
                         if (
-                            jailbreakConversationId
-                            && (
-                                stopTokenFound
-                                || event.item.messages[0].topicChangerText
-                                || event.item.messages[0].offense === 'OffenseTrigger'
-                                || (event.item.messages.length > 1 && event.item.messages[1].contentOrigin === 'Apology')
-                            )
+                            opts.jailbreakConversationId
+                        && (
+                            stopTokenFound
+                            || event.item.messages[0].topicChangerText
+                            || event.item.messages[0].offense === 'OffenseTrigger'
+                            || (event.item.messages.length > 1 && event.item.messages[1].contentOrigin === 'Apology')
+                        )
                         ) {
                             if (!replySoFar) {
                                 replySoFar = '[Error: The moderation filter triggered. Try again with different wording.]';
@@ -671,7 +741,7 @@ export default class BingAIClient {
                             delete eventMessage.suggestedResponses;
                         }
                         if (bicIframe) {
-                            // the last messages will be a image creation event if bicIframe is present.
+                        // the last messages will be a image creation event if bicIframe is present.
                             let i = messages.length - 1;
                             while (eventMessage?.contentType === 'IMAGE' && i > 0) {
                                 eventMessage = messages[i -= 1];
@@ -698,7 +768,7 @@ export default class BingAIClient {
                         return;
                     }
                     case 7: {
-                        // [{"type":7,"error":"Connection closed with an error.","allowReconnect":true}]
+                    // [{"type":7,"error":"Connection closed with an error.","allowReconnect":true}]
                         clearTimeout(messageTimeout);
                         this.constructor.cleanupWebSocketConnection(ws);
                         reject(new Error(event.error || 'Connection closed with an error.'));
@@ -717,47 +787,7 @@ export default class BingAIClient {
             });
         });
 
-        const messageJson = JSON.stringify(obj);
-        if (this.debug) {
-            console.debug(messageJson);
-            console.debug('\n\n\n\n');
-        }
-        ws.send(`${messageJson}\u001E`);
-
-        const {
-            message: reply,
-            conversationExpiryTime,
-        } = await messagePromise;
-
-        const replyMessage = {
-            id: crypto.randomUUID(),
-            parentMessageId: userMessage.id,
-            role: 'Bing',
-            message: reply.text,
-            details: reply,
-        };
-        if (jailbreakConversationId) {
-            conversation.messages.push(replyMessage);
-            await this.conversationsCache.set(conversationKey, conversation);
-        }
-
-        const returnData = {
-            conversationId,
-            conversationSignature,
-            clientId,
-            invocationId: invocationId + 1,
-            conversationExpiryTime,
-            response: reply.text,
-            details: reply,
-        };
-
-        if (jailbreakConversationId) {
-            returnData.jailbreakConversationId = jailbreakConversationId;
-            returnData.parentMessageId = replyMessage.parentMessageId;
-            returnData.messageId = replyMessage.id;
-        }
-
-        return returnData;
+        return messagePromise;
     }
 
     /**
