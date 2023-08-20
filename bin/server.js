@@ -54,7 +54,7 @@ await server.register(cors, {
 
 server.get('/ping', () => Date.now().toString());
 
-if (process.env.ENABLE_IP_WHITELIST === true) {
+if (process.env.ENABLE_IP_WHITELIST === 'true') {
     const allowedIps = process.env.ALLOWED_IPS.split(',');
     server.addHook('preHandler', (request, reply, done) => {
         const { ip } = request;
