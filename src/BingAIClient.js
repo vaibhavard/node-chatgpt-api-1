@@ -153,13 +153,11 @@ export default class BingAIClient {
         let base64String;
         try {
             const response = await fetch(imageUrl, { method: 'GET' });
-
             if (response.ok) {
                 const imageBlob = await response.blob();
                 const arrayBuffer = await imageBlob.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 base64String = buffer.toString('base64');
-                console.log(base64String);
             } else {
                 throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
             }
@@ -172,9 +170,9 @@ export default class BingAIClient {
     /**
      * Method to upload image to blob storage to later be incorporated in the user message.
      * The returned "blobId" is used in the originalImageUrl like this:
-     * originalImageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
+     * imageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
      * The returned "processBlobId" is used in the imageUrl like this:
-     * imageUrl:            'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
+     * originalImageUrl:            'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
      * @param {string} imageBase64 The base64 string of the image to upload to blob storage.
      * @returns {object} An object containing the "blobId" and "processBlobId" for the image.
      */
@@ -191,28 +189,27 @@ export default class BingAIClient {
                 },
             };
 
-            const bodyVariable = '------WebKitFormBoundaryddtA5v1R5MVXYpKW\r\n'
+            const body = '------WebKitFormBoundary\r\n'
             + 'Content-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
             + `${JSON.stringify(knowledgeRequestBody)}\r\n`
-            + '------WebKitFormBoundaryddtA5v1R5MVXYpKW\r\n'
+            + '------WebKitFormBoundary\r\n'
             + 'Content-Disposition: form-data; name="imageBase64"\r\n\r\n'
-            + `/${imageBase64}\r\n`
-            + '------WebKitFormBoundaryddtA5v1R5MVXYpKW--\r\n';
+            + `${imageBase64}\r\n`
+            + '------WebKitFormBoundary--\r\n';
 
             const response = await fetch('https://www.bing.com/images/kblob', {
                 headers: {
                     accept: '*/*',
-                    'content-type': 'multipart/form-data;',
+                    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary',
                     cookie: this.options.cookies || `_U=${this.options.userToken}`,
                     Referer: 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx',
                     'Referrer-Policy': 'origin-when-cross-origin',
                 },
-                body: bodyVariable,
+                body,
                 method: 'POST',
             });
             if (response.ok) {
                 data = await response.json();
-                console.log(data);
             } else {
                 throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
             }
@@ -394,6 +391,19 @@ export default class BingAIClient {
             conversation.messages.push(userMessage);
         }
 
+        const imageURL = opts?.imageURL;
+        const imageBase64 = imageURL ? await BingAIClient.getBase64FromImageUrl(imageURL) : opts?.imageBase64;
+        const imageUploadResult = imageBase64 ? await this.uploadImage(imageBase64) : undefined;
+        const webSocketParameters = {
+            message,
+            invocationId,
+            jailbreakConversationId,
+            conversationSignature,
+            clientId,
+            conversationId,
+            ...imageUploadResult && { imageUploadResult },
+        };
+
         const ws = await this.createWebSocketConnection();
 
         ws.on('error', (error) => {
@@ -402,14 +412,7 @@ export default class BingAIClient {
             abortController.abort();
         });
 
-        const userWebsocketRequest = this.createUserWebsocketRequest(
-            message,
-            invocationId,
-            jailbreakConversationId,
-            conversationSignature,
-            clientId,
-            conversationId,
-        );
+        const userWebsocketRequest = this.createUserWebsocketRequest(webSocketParameters);
 
         if (previousMessagesFormatted) {
             userWebsocketRequest.arguments[0].previousMessages.push({
@@ -483,15 +486,10 @@ export default class BingAIClient {
 
     /**
      * Creates an object that can be used to send a user message through the websocket.
-     * @param {Object} message The message parameter of the "sendMessage" method, containing the message the user sent.
-     * @param {Number} invocationId The index of the user message.
-     * @param {String} jailbreakConversationId A random GUID.
-     * @param {String} conversationSignature Unique singature for each user message.
-     * @param {String} clientId Unique clientId that is constant.
-     * @param {*} conversationId Unique id for each user message.
+     * @param {Object} webSocketParameters Contains parameters necessary for websocket creation.
      * @returns {Object} Object that contains all necessary properties for sending the user message.
      */
-    createUserWebsocketRequest(message, invocationId, jailbreakConversationId, conversationSignature, clientId, conversationId) {
+    createUserWebsocketRequest(webSocketParameters) {
         const toneStyle = 'creative';
         let toneOption;
         if (toneStyle === 'creative') {
@@ -505,6 +503,17 @@ export default class BingAIClient {
             // old "Balanced" mode
             toneOption = 'harmonyv3';
         }
+        const {
+            message,
+            invocationId,
+            jailbreakConversationId,
+            conversationSignature,
+            clientId,
+            conversationId,
+            imageUploadResult = undefined,
+        } = webSocketParameters;
+        const imageBaseURL = 'https://www.bing.com/images/blob?bcid=';
+
         let messageText;
         if (jailbreakConversationId) {
             if (this.options.useBase64) {
@@ -572,8 +581,8 @@ export default class BingAIClient {
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
                     message: {
-                        // imageUrl: 'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ',
-                        // originalImageUrl: 'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A',
+                        ...imageUploadResult && { imageUrl: imageBaseURL + imageUploadResult.blobId },
+                        ...imageUploadResult && { originalImageUrl: imageBaseURL + imageUploadResult.processBlobId },
                         author: 'user',
                         text: messageText,
                         messageType: 'Chat',
