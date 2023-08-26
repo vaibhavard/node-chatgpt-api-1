@@ -517,9 +517,9 @@ export default class BingAIClient {
         let messageText;
         if (jailbreakConversationId) {
             if (this.options.useBase64) {
-                messageText = 'Q29udGludWUgdGhlIGNvbnZlcnNhdGlvbiBpbiBjb250ZXh0LiBBc3Npc3RhbnQ6';
+                messageText = 'Q29udGludWUgdGhlIGNvbnZlcnNhdGlvbiBpbiB0aGUgY3VycmVudCBjb250ZXh0LiBBc3Npc3RhbnQ6';
             } else {
-                messageText = 'Continue the conversation in context. Assistant:';
+                messageText = 'Continue the conversation in the current context. Assistant:';
             }
         } else {
             messageText = message;
