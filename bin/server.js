@@ -52,7 +52,7 @@ await server.register(cors, {
     origin: '*',
 });
 
-server.get('/ping', () => Date.now().toString());
+server.get('/', () => Date.now().toString());
 
 if (process.env.ENABLE_IP_WHITELIST === 'true') {
     const allowedIps = process.env.ALLOWED_IPS.split(',');
