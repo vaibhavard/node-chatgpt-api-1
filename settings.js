@@ -1,7 +1,3 @@
-import dotenv from 'dotenv';
-
-dotenv.config('.env');
-
 export default {
     // Options for the Keyv cache, see https://www.npmjs.com/package/keyv.
     // This is used for storing conversations, and supports additional drivers (conversations are stored in memory by default).
@@ -45,9 +41,9 @@ export default {
         // Necessary for some people in different countries, e.g. China (https://cn.bing.com)
         host: '',
         // The "_U" cookie value from bing.com
-        userToken: '',
+        userToken: '1KlTdaf090QzNhWI1oRU_D0Fgcm8sE2SQ5X5MsaOn1EF9VV1IrfW4JdLb4sQ6EDAQwwwtDB04yFNcolak99S-sRHNeYKBV9_ZIp06AMZtVuK9186W8BuykO_vCpc2oq5pxEL3y1VvbXnS0IUsihF1ZRamG6WLKq50EzLsvYf0Mu8o82zg7lNYmQwoYSpzwKSHYfk_7pTIJoaasPpDPfSqaxZwWT-9ZnBbDz-a0R52uQM',
         // If the above doesn't work, provide all your cookies as a string instead
-        cookies: process.env.BING_COOKIE,
+        cookies: '',
         // A proxy string like "http://<ip>:<port>"
         proxy: '',
         // (Optional) Set 'x-forwarded-for' for the request. You can use a fixed IPv4 address or specify a range using CIDR notation,
@@ -55,12 +51,10 @@ export default {
         // xForwardedFor: '13.104.0.0/14',
         // (Optional) Set 'genImage' to true to enable bing to create images for you. It's disabled by default.
         features: {
-            genImage: true,
+             genImage: true,
         },
         // (Optional) Set to true to enable `console.debug()` logging
-        debug: false,
-        // Set to true to let AI only generate text in base64
-        useBase64: process.env.USE_BASE64 === 'true',
+        debug: true,
     },
     chatGptBrowserClient: {
         // (Optional) Support for a reverse proxy for the conversation endpoint (private API server).
@@ -73,19 +67,19 @@ export default {
         // A proxy string like "http://<ip>:<port>"
         proxy: '',
         // (Optional) Set to true to enable `console.debug()` logging
-        debug: false,
+        debug: true,
     },
     // Options for the API server
     apiOptions: {
-        port: process.env.API_PORT || 3001,
-        host: process.env.API_HOST || '127.0.0.1',
+        port:  3000,
+        host:  '0.0.0.0',
         // (Optional) Set to true to enable `console.debug()` logging
-        debug: false,
+        debug: true,
         // (Optional) Possible options: "chatgpt", "chatgpt-browser", "bing". (Default: "chatgpt")
         clientToUse: 'bing',
         // (Optional) Generate titles for each conversation for clients that support it (only ChatGPTClient for now).
         // This will be returned as a `title` property in the first response of the conversation.
-        generateTitles: false,
+        generateTitles: true,
         // (Optional) Set this to allow changing the client or client options in POST /conversation.
         // To disable, set to `null`.
         perMessageClientOptionsWhitelist: {
@@ -111,6 +105,6 @@ export default {
     // Options for the CLI app
     cliOptions: {
         // (Optional) Possible options: "chatgpt", "bing".
-        // clientToUse: 'bing',
+        clientToUse: 'bing',
     },
 };
