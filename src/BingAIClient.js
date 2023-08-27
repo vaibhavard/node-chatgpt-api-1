@@ -2,7 +2,7 @@ import './fetch-polyfill.js';
 import crypto from 'crypto';
 import WebSocket from 'ws';
 import Keyv from 'keyv';
-import { Agent } from 'undici';
+import { Agent, ProxyAgent } from 'undici';
 import { BingImageCreator } from '@timefox/bic-sydney';
 import dotenv from 'dotenv';
 
@@ -116,7 +116,11 @@ export default class BingAIClient {
         const fetchOptions = {
             headers: this.headers,
         };
-        fetchOptions.dispatcher = new Agent({ connect: { timeout: 30_000 } });
+        if (this.options.proxy) {
+            fetchOptions.dispatcher = new ProxyAgent(this.options.proxy);
+        } else {
+            fetchOptions.dispatcher = new Agent({ connect: { timeout: 20_000 } });
+        }
         const response = await fetch(`${this.options.host}/turing/conversation/create`, fetchOptions);
         const body = await response.text();
         try {
