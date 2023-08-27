@@ -1,4 +1,1 @@
-$nodeProcesses = Get-Process -Name node
-foreach ($process in $nodeProcesses) {
-    Stop-Process -Id $process.Id
-}
+taskkill /F /IM node.exe > $null 2>&1
