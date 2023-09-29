@@ -366,12 +366,11 @@ export default class BingAIClient {
                 previousMessagesFormatted = `${context}\n\n${previousMessagesFormatted}`;
             }
         }
-
         const userMessage = {
             id: crypto.randomUUID(),
             parentMessageId,
             role: 'User',
-            message,
+            message: process.env.USE_BASE64 === 'true' ? BingAIClient.convertTextToBase64(message) : message,
         };
 
         if (jailbreakConversationId) {
@@ -471,6 +470,17 @@ export default class BingAIClient {
     }
 
     /**
+     * Encodes strings from UTF-8 to Base64.
+     * @param {String} text Text that should be encoded into base64 from UTF-8.
+     * @returns {String} Base64 encoded string.
+     */
+    static convertTextToBase64(text) {
+        const base64String = Buffer.from(text, 'utf-8').toString('base64');
+
+        return base64String;
+    }
+
+    /**
      * Creates an object that can be used to send a user message through the websocket.
      * @param {Object} webSocketParameters Contains parameters necessary for websocket creation.
      * @returns {Object} Object that contains all necessary properties for sending the user message.
@@ -525,11 +535,10 @@ export default class BingAIClient {
                         'iycapbing',
                         toneOption,
                         'clgalileo',
-                        'clgalileo',
                         ...((toneStyle === 'creative' && this.options.features.genImage) ? ['gencontentv3'] : []),
                         'uquopt',
                         'jbfv203',
-                        'streamw',
+                        // 'streamw',
                         // "savemem",
                         // "savememfilter",
                         'uprofgen',
@@ -572,7 +581,7 @@ export default class BingAIClient {
                         '913jbfv203',
                         '806log2sphs0',
                         '0529streamw',
-                        'streamw',
+                        // 'streamw',
                         '911memdark',
                         'attr1atral3',
                         '0822localvgs0',
