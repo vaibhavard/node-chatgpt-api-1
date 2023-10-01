@@ -77,7 +77,7 @@ export default {
     },
     // Options for the API server
     apiOptions: {
-        port: process.env.API_PORT || 3001,
+        port: process.env.PORT || 3001,
         host: process.env.API_HOST || '127.0.0.1',
         // (Optional) Set to true to enable `console.debug()` logging
         debug: false,

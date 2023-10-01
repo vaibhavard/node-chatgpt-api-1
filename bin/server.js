@@ -206,7 +206,7 @@ function deleteConversation(messageId) {
 }
 
 server.listen({
-    port: settings.apiOptions?.port || settings.port || 3000,
+    port: process.env?.PORT || settings.apiOptions?.port || settings.port || 3000,
     host: settings.apiOptions?.host || 'localhost',
 }, (error) => {
     if (error) {
