@@ -104,10 +104,17 @@ export default class BingAIClient {
         } else {
             fetchOptions.dispatcher = new Agent({ connect: { timeout: 30_000 } });
         }
-        const response = await fetch(`${this.options.host}/turing/conversation/create`, fetchOptions);
-        const body = await response.text();
+        const turingCreateURL = new URL(`${this.options.host}/turing/conversation/create`);
+        const searchParams = new URLSearchParams({
+            bundleVersion: '1.864.15',
+        });
+        turingCreateURL.search = searchParams.toString();
+        const response = await fetch(turingCreateURL, fetchOptions);
+        const bodyString = await response.text();
         try {
-            return JSON.parse(body);
+            const body = JSON.parse(bodyString);
+            body.conversationSignature = response.headers.get('x-sydney-encryptedconversationsignature');
+            return body;
         } catch (err) {
             throw new Error('/turing/conversation/create: failed to parse response body.\n');
         }
@@ -207,9 +214,12 @@ export default class BingAIClient {
         return data;
     }
 
-    async createWebSocketConnection() {
+    async createWebSocketConnection(conversationSignature) {
         return new Promise((resolve, reject) => {
-            const ws = new WebSocket('wss://sydney.bing.com/sydney/ChatHub', { headers: this.headers });
+            const ws = new WebSocket(
+                `wss://sydney.bing.com/sydney/ChatHub?sec_access_token=${encodeURIComponent(conversationSignature)}`,
+                { headers: this.headers },
+            );
 
             ws.on('error', err => reject(err));
 
@@ -390,7 +400,7 @@ export default class BingAIClient {
             ...imageUploadResult && { imageUploadResult },
         };
 
-        const ws = await this.createWebSocketConnection();
+        const ws = await this.createWebSocketConnection(conversationSignature);
 
         ws.on('error', (error) => {
             console.error(error);
