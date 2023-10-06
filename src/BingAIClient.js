@@ -106,7 +106,7 @@ export default class BingAIClient {
         }
         const turingCreateURL = new URL(`${this.options.host}/turing/conversation/create`);
         const searchParams = new URLSearchParams({
-            bundleVersion: '1.864.15',
+            bundleVersion: '1.864.26',
         });
         turingCreateURL.search = searchParams.toString();
         const response = await fetch(turingCreateURL, fetchOptions);
@@ -376,11 +376,12 @@ export default class BingAIClient {
                 previousMessagesFormatted = `${context}\n\n${previousMessagesFormatted}`;
             }
         }
+        if (process.env.USE_BASE64 === 'true') { message = BingAIClient.convertTextToBase64(message); }
         const userMessage = {
             id: crypto.randomUUID(),
             parentMessageId,
             role: 'User',
-            message: process.env.USE_BASE64 === 'true' ? BingAIClient.convertTextToBase64(message) : message,
+            message,
         };
 
         if (jailbreakConversationId) {
@@ -533,37 +534,23 @@ export default class BingAIClient {
                 {
                     source: 'cib',
                     optionsSets: [
-                        'nlu_direct_response_filter',
+                        // "nlu_direct_response_filter",
                         'deepleo',
                         'disable_emoji_spoken_text',
-                        'responsible_ai_policy_235',
-                        'enablemm',
+                        // "responsible_ai_policy_235",
+                        // "enablemm",
                         'dv3sugg',
-                        'machine_affinity',
                         // "autosave",
                         'iyxapbing',
                         'iycapbing',
                         toneOption,
                         'clgalileo',
                         ...((toneStyle === 'creative' && this.options.features.genImage) ? ['gencontentv3'] : []),
-                        'uquopt',
-                        'jbfv203',
-                        // 'streamw',
-                        // "savemem",
+                        // "log2sph",
                         // "savememfilter",
-                        'uprofgen',
-                        'uprofupd',
-                        'cpcandi',
-                        'cpcatral3',
-                        'cpcatro50',
-                        'cpcfmql',
-                        'cpcgnddi',
-                        'cpcmattr1',
-                        'cpcmcit1',
-                        'e2ecacheread',
-                        'nocitpass',
-                        'iyjbexp',
-                        'izfstprmpt',
+                        // "uprofgen",
+                        // "uprofupd",
+                        // "uprofupdasy",
                         'eredirecturl',
                         'nojbfedge', // Not included in standard message, but won't work without.
                     ],
@@ -590,12 +577,12 @@ export default class BingAIClient {
                         'sydconfigoptt',
                         '913jbfv203',
                         '806log2sphs0',
-                        '0529streamw',
                         // 'streamw',
-                        '911memdark',
                         'attr1atral3',
                         '0822localvgs0',
                         '0901fstprmpt',
+                        'sydtransl',
+                        '926buffall',
                     ],
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
