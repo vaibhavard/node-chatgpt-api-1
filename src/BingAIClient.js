@@ -376,7 +376,6 @@ export default class BingAIClient {
                 previousMessagesFormatted = `${context}\n\n${previousMessagesFormatted}`;
             }
         }
-        if (process.env.USE_BASE64 === 'true') { message = BingAIClient.convertTextToBase64(message); }
         const userMessage = {
             id: crypto.randomUUID(),
             parentMessageId,
