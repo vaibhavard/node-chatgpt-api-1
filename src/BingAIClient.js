@@ -590,7 +590,7 @@ export default class BingAIClient {
                         ...imageUploadResult && { originalImageUrl: `${imageBaseURL}${imageUploadResult.processBlobId}` },
                         author: 'user',
                         text: messageText,
-                        messageType: 'Chat',
+                        messageType: jailbreakConversationId ? 'SearchQuery' : 'Chat',
                     },
                     conversationSignature,
                     participant: {
