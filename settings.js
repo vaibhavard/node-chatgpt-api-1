@@ -61,6 +61,8 @@ export default {
         debug: false,
         // Set to true to let AI only generate text in base64
         useBase64: process.env.USE_BASE64 === 'true',
+        // Set to false to disable suggestions
+        showSuggestions: process.env.SHOW_SUGGESTIONS !== 'false',
     },
     chatGptBrowserClient: {
         // (Optional) Support for a reverse proxy for the conversation endpoint (private API server).

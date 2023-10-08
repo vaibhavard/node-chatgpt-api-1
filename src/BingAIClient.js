@@ -522,7 +522,7 @@ export default class BingAIClient {
 
         let messageText;
         if (jailbreakConversationId) {
-            messageText = process.env.USE_BASE64 === 'true'
+            messageText = this.options.useBase64
                 ? 'Q29udGludWUgdGhlIGNvbnZlcnNhdGlvbiBpbiBjb250ZXh0LiBBc3Npc3RhbnQ6'
                 : 'Continue the conversation in context. Assistant:';
         } else {
@@ -533,23 +533,14 @@ export default class BingAIClient {
                 {
                     source: 'cib',
                     optionsSets: [
-                        // "nlu_direct_response_filter",
                         'deepleo',
                         'disable_emoji_spoken_text',
-                        // "responsible_ai_policy_235",
-                        // "enablemm",
                         'dv3sugg',
-                        // "autosave",
                         'iyxapbing',
                         'iycapbing',
                         toneOption,
                         'clgalileo',
                         ...((toneStyle === 'creative' && this.options.features.genImage) ? ['gencontentv3'] : []),
-                        // "log2sph",
-                        // "savememfilter",
-                        // "uprofgen",
-                        // "uprofupd",
-                        // "uprofupdasy",
                         'eredirecturl',
                         'nojbfedge', // Not included in standard message, but won't work without.
                     ],
@@ -576,7 +567,7 @@ export default class BingAIClient {
                         'sydconfigoptt',
                         '913jbfv203',
                         '806log2sphs0',
-                        // 'streamw',
+                        // 'streamw', leads to unwanted streaming behavior
                         'attr1atral3',
                         '0822localvgs0',
                         '0901fstprmpt',
@@ -586,8 +577,10 @@ export default class BingAIClient {
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
                     message: {
-                        ...imageUploadResult && { imageUrl: `${imageBaseURL}${imageUploadResult.blobId}` },
-                        ...imageUploadResult && { originalImageUrl: `${imageBaseURL}${imageUploadResult.processBlobId}` },
+                        ...imageUploadResult
+                            && { imageUrl: `${imageBaseURL}${imageUploadResult.blobId}` },
+                        ...imageUploadResult
+                            && { originalImageUrl: `${imageBaseURL}${imageUploadResult.processBlobId}` },
                         author: 'user',
                         text: messageText,
                         messageType: jailbreakConversationId ? 'SearchQuery' : 'Chat',
@@ -770,7 +763,8 @@ export default class BingAIClient {
                                 eventMessage.adaptiveCards[0].body[0].text = eventMessage.text;
                             }
                         }
-                        if (this.options.useBase64 && eventMessage.suggestedResponses) {
+                        if ((this.options.showSuggestions === false || this.options.useBase64)
+                                && eventMessage.suggestedResponses) {
                             delete eventMessage.suggestedResponses;
                         }
                         resolve({
