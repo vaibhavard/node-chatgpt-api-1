@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import ChatGPTClient from '../src/ChatGPTClient.js';
 import ChatGPTBrowserClient from '../src/ChatGPTBrowserClient.js';
 import BingAIClient from '../src/BingAIClient.js';
+import LocalLLMClient from '../src/LocalLLMClient.js';
 
 dotenv.config('.env');
 
@@ -95,38 +96,44 @@ server.post('/conversation', async (request, reply) => {
             // noinspection ExceptionCaughtLocallyJS
             throw invalidError;
         }
-
-        let clientToUseForMessage = clientToUse;
+        let clientToUseForMessage = body.clientOptions.clientToUse;
         const clientOptions = filterClientOptions(body.clientOptions, clientToUseForMessage);
         if (clientOptions && clientOptions.clientToUse) {
             clientToUseForMessage = clientOptions.clientToUse;
             delete clientOptions.clientToUse;
         }
 
-        let { shouldGenerateTitle } = body;
-        if (typeof shouldGenerateTitle !== 'boolean') {
-            shouldGenerateTitle = settings.apiOptions?.generateTitles || false;
-        }
-
         const messageClient = getClient(clientToUseForMessage);
-
-        result = await messageClient.sendMessage(body.message, {
-            jailbreakConversationId: body.jailbreakConversationId,
+        const {
+            context,
+            shouldGenerateTitle,
+            clientId,
+            conversationSignature,
+            imageBase64,
+            imageURL,
+            invocationId,
+            jailbreakConversationId,
+            toneStyle,
+            systemMessage,
+        } = body;
+        const messageOptions = {
             conversationId: body.conversationId ? body.conversationId.toString() : undefined,
             parentMessageId: body.parentMessageId ? body.parentMessageId.toString() : undefined,
-            systemMessage: body.systemMessage,
-            context: body.context,
-            conversationSignature: body.conversationSignature,
-            clientId: body.clientId,
-            invocationId: body.invocationId,
-            shouldGenerateTitle, // only used for ChatGPTClient
-            toneStyle: body.toneStyle,
             clientOptions,
-            imageURL: body?.imageURL,
-            imageBase64: body?.imageBase64,
+            ...(clientToUseForMessage === 'chatgpt' && { context }),
+            ...(clientToUseForMessage === 'chatgpt' && { shouldGenerateTitle }),
+            ...(clientToUseForMessage === 'bing' && { clientId }),
+            ...(clientToUseForMessage === 'bing' && { conversationSignature }),
+            ...(clientToUseForMessage === 'bing' && { imageBase64 }),
+            ...(clientToUseForMessage === 'bing' && { imageURL }),
+            ...(clientToUseForMessage === 'bing' && { invocationId }),
+            ...(clientToUseForMessage === 'bing' && { jailbreakConversationId }),
+            ...(clientToUseForMessage === 'bing' && { toneStyle }),
+            ...((clientToUseForMessage === 'bing') && { systemMessage }),
             onProgress,
             abortController,
-        });
+        };
+        result = await messageClient.sendMessage(body.message, messageOptions);
     } catch (e) {
         error = e;
     }
@@ -166,9 +173,9 @@ server.post('/conversation', async (request, reply) => {
     return reply.code(code).send({ error: message });
 });
 
-server.delete('/conversation/:messageId', (request, reply) => {
-    const { messageId } = request.params;
-    const error = deleteConversation(messageId);
+server.delete('/conversation/:cacheKey', (request, reply) => {
+    const { cacheKey } = request.params;
+    const error = deleteConversation(cacheKey);
     if (error) {
         reply.code(500).send(error);
     } else {
@@ -176,13 +183,13 @@ server.delete('/conversation/:messageId', (request, reply) => {
     }
 });
 
-function deleteConversation(messageId) {
+function deleteConversation(cacheKey) {
     const cache = JSON.parse(fs.readFileSync('cache.json', 'utf8'));
     const cacheArray = cache.cache;
     let index = -1;
     let result;
     for (let i = 0; i < cacheArray.length; i++) {
-        if (cacheArray[i][0] === messageId) {
+        if (cacheArray[i][0] === cacheKey) {
             index = i;
             break;
         }
@@ -225,6 +232,11 @@ function getClient(clientToUseForMessage) {
             return new ChatGPTClient(
                 settings.openaiApiKey || settings.chatGptClient.openaiApiKey,
                 settings.chatGptClient,
+                settings.cacheOptions,
+            );
+        case 'localLLM':
+            return new LocalLLMClient(
+                settings.localLLMClient,
                 settings.cacheOptions,
             );
         default:

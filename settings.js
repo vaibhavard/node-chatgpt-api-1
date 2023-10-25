@@ -77,14 +77,38 @@ export default {
         // (Optional) Set to true to enable `console.debug()` logging
         debug: false,
     },
+    localLLMClient: {
+        // The host url for the Local LLM. For example 'localhost', '192.168.X.XX' or 'myapihoster.com'
+        host: process.env.LOCAL_LLM_API_HOST || 'localhost',
+        // The port for the Local LLM API server.
+        port: process.env.LOCAL_LLM_API_PORT || '3002',
+        // The system message or prompt prefix that should be shown to the model as the first message.
+        systemMessage: process.env.LOCAL_LLM_SYSTEM_MESSAGE || 'You are an AI assistant. Write the AI\'s next reply in a chat between the user and the AI. Write a single reply only.',
+        // The maximum context tokens the model supports. See your model card or underlying model card as a reference.
+        max_tokens: process.env.LOCAL_LLM_MAX_TOKENS || 4096,
+        // The prefix a user message should have. See your model card or underlying model card as a reference.
+        startToken: process.env.LOCAL_LLM_START_TOKEN || '### Instruction: ',
+        // The suffix a user message should have. See your model card or underlying model card as a reference.
+        endToken: process.env.LOCAL_LLM_END_TOKEN || '### Response: ',
+        // Whether the reponse should be streamed, so outputted token by token.
+        stream: process.env.LOCAL_LLM_STREAM || true,
+        // Determines the randomness of replies.
+        temperature: process.env.LOCAL_LLM_TEMPERATURE || 0.8,
+        // Makes model more or less likely to use similar tokens in the same conversation.
+        presence_penalty: process.env.LOCAL_LLM_PRESENCE_PENALTY || 1.1,
+        // The token at which to stop generating. See your model card or underlying model card as a reference.
+        stop: process.env.LOCAL_LLM_STOP_TOKEN || ['### Instruction: '],
+        // (Optional) Set to true to enable `console.debug()` logging
+        debug: false,
+    },
     // Options for the API server
     apiOptions: {
         port: process.env.PORT || 3001,
         host: process.env.API_HOST || '127.0.0.1',
         // (Optional) Set to true to enable `console.debug()` logging
         debug: false,
-        // (Optional) Possible options: "chatgpt", "chatgpt-browser", "bing". (Default: "chatgpt")
-        clientToUse: 'bing',
+        // (Optional) Possible options: "chatgpt", "chatgpt-browser", "bing", "localLLM". (Default: "chatgpt")
+        clientToUse: '',
         // (Optional) Generate titles for each conversation for clients that support it (only ChatGPTClient for now).
         // This will be returned as a `title` property in the first response of the conversation.
         generateTitles: false,
@@ -93,7 +117,7 @@ export default {
         perMessageClientOptionsWhitelist: {
             // The ability to switch clients using `clientOptions.clientToUse` will be disabled if `validClientsToUse` is not set.
             // To allow switching clients per message, you must set `validClientsToUse` to a non-empty array.
-            validClientsToUse: ['bing', 'chatgpt', 'chatgpt-browser'], // values from possible `clientToUse` options above
+            validClientsToUse: ['bing', 'chatgpt', 'chatgpt-browser', 'localLLM'], // values from possible `clientToUse` options above
             // The Object key, e.g. "chatgpt", is a value from `validClientsToUse`.
             // If not set, ALL options will be ALLOWED to be changed. For example, `bing` is not defined in `perMessageClientOptionsWhitelist` above,
             // so all options for `bingAiClient` will be allowed to be changed.

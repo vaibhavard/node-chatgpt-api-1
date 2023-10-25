@@ -124,6 +124,7 @@ Discord user @pig#8932 has found a working `text-chat-davinci-002` model, `text-
   - Includes a built-in jailbreak you can activate which enables unlimited chat messages per conversation, unlimited messages per day, and brings Sydney back. 😊
 - `ChatGPTBrowserClient`: support for the official ChatGPT website, using a reverse proxy server for a Cloudflare bypass.
   - **There may be a high chance of your account being banned if you continue to automate chat.openai.com.** Continue doing so at your own risk.
+- `LocalLLMClient`: support for using custom LLMs hosted on a server. For example you can use LM Studio to load a custom LLM and open a server. Uses the `/v1/chat/completions` endpoint by default.
 
 ## Getting Started
 
@@ -154,6 +155,11 @@ See [`demos/use-client.js`](demos/use-client.js).
 <summary><strong>ChatGPTBrowserClient</strong></summary>
 
 See [`demos/use-browser-client.js`](demos/use-browser-client.js).
+</details>
+<details open>
+<summary><strong>LocalLLMClient</strong></summary>
+
+See [`demos/use-browser-client.js`](demos/use-localLLM-client.js).
 </details>
 
 ### API Server
