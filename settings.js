@@ -85,7 +85,7 @@ export default {
         // The system message or prompt prefix that should be shown to the model as the first message.
         systemMessage: process.env.LOCAL_LLM_SYSTEM_MESSAGE || 'You are an AI assistant. Write the AI\'s next reply in a chat between the user and the AI. Write a single reply only.',
         // The maximum context tokens the model supports. See your model card or underlying model card as a reference.
-        max_tokens: process.env.LOCAL_LLM_MAX_TOKENS || 4096,
+        context_tokens: process.env.LOCAL_LLM_MAX_TOKENS || 4096,
         // The prefix a user message should have. See your model card or underlying model card as a reference.
         startToken: process.env.LOCAL_LLM_START_TOKEN || '### Instruction: ',
         // The suffix a user message should have. See your model card or underlying model card as a reference.
@@ -96,6 +96,8 @@ export default {
         temperature: process.env.LOCAL_LLM_TEMPERATURE || 0.8,
         // Makes model more or less likely to use similar tokens in the same conversation.
         presence_penalty: process.env.LOCAL_LLM_PRESENCE_PENALTY || 1.1,
+        // The maximum tokens the model should generate per response.
+        max_tokens: process.env.LOCAL_LLM_MAX_TOKENS || 500,
         // The token at which to stop generating. See your model card or underlying model card as a reference.
         stop: process.env.LOCAL_LLM_STOP_TOKEN || ['### Instruction: '],
         // (Optional) Set to true to enable `console.debug()` logging

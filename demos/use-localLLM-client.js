@@ -5,12 +5,13 @@ const options = {
     host: 'localhost',
     port: '3002',
     systemMessage: 'You are an AI assistant. Write the AI\'s next reply in a chat between the user and the AI. Write a single reply only.',
-    max_tokens: 4096,
+    context_tokens: 4096,
     startToken: '### Instruction: ',
     endToken: '### Response: ',
     stream: false,
     temperature: 0.8,
     presence_penalty: 1.1,
+    max_tokens: 500,
     stop: ['### Instruction: '],
 };
 
@@ -31,6 +32,7 @@ const response = await localLLMClient.sendMessage('Hello, how are you?');
     "stream": false,
     "temperature": 0.8,
     "presence_penalty": 1.1,
+    "max_tokens": 500,
     "stop": [
       "### Instruction: "
     ]

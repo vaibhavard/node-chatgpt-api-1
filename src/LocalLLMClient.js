@@ -26,7 +26,7 @@ export default class LocalLLMClient {
                 host: options.host || 'localhost',
                 port: options.port || '3002',
                 systemMessage: options.systemMessage || 'You are an AI assistant. Write the AI\'s next reply in a chat between the user and the AI. Write a single reply only.',
-                max_tokens: options.max_tokens || 4096,
+                context_tokens: options.context_tokens || 4096,
                 startToken: options.startToken || '### Instruction: ',
                 endToken: options.endToken || '### Response: ',
                 modelOptions: {
@@ -34,6 +34,7 @@ export default class LocalLLMClient {
                     stream: options.stream || true,
                     temperature: options.temperature || 0.8,
                     presence_penalty: options.presence_penalty || 1.1,
+                    max_tokens: options.max_tokens || 500,
                     stop: options.stop || ['### Instruction: '],
                 },
             };
@@ -164,10 +165,10 @@ export default class LocalLLMClient {
         let orderedMessages = LocalLLMClient.#getMessagesForConversation(messages, userMessage.id);
         let currentContent = orderedMessages.map(message => message.message).join(' ');
         let currentTokenCount = LocalLLMClient.#getTokenCount(currentContent);
-        while (currentTokenCount > this.options.max_tokens) {
-            const newParentId = orderedMessages[2].id;
-            orderedMessages.splice(3, 2);
-            orderedMessages[3].parentMessageId = newParentId;
+        while ((currentTokenCount + this.options.modelOptions.max_tokens) > this.options.context_tokens) {
+            const newParentId = orderedMessages[0].id;
+            orderedMessages.splice(1, 2);
+            orderedMessages[1].parentMessageId = newParentId;
             currentContent = orderedMessages.map(message => message.message).join('');
             currentTokenCount = LocalLLMClient.#getTokenCount(currentContent);
         }
@@ -182,6 +183,8 @@ export default class LocalLLMClient {
             });
             orderedMessages[1].parentMessageId = systemMessageId;
         }
+        // overwrite the conversation.messages with new message array
+        messages = orderedMessages;
 
         orderedMessages = orderedMessages.map(message => ({
             role: message.role,
