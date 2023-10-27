@@ -90,12 +90,16 @@ export default {
         startToken: process.env.LOCAL_LLM_START_TOKEN || '### Instruction: ',
         // The suffix a user message should have. See your model card or underlying model card as a reference.
         endToken: process.env.LOCAL_LLM_END_TOKEN || '### Response: ',
-        // Whether the reponse should be streamed, so outputted token by token.
+        // Whether the reponse should be streamed, so being output token by token.
         stream: process.env.LOCAL_LLM_STREAM || true,
         // Determines the randomness of replies.
         temperature: process.env.LOCAL_LLM_TEMPERATURE || 0.8,
+        // Determines the randomness of replies.
+        top_p: process.env.LOCAL_LLM_TOP_P,
         // Makes model more or less likely to use similar tokens in the same conversation.
         presence_penalty: process.env.LOCAL_LLM_PRESENCE_PENALTY || 1.1,
+        // Makes model more or less likely to use similar tokens in the same conversation.
+        frequency_penalty: process.env.LOCAL_LLM_FREQUENCY_PENALTY,
         // The maximum tokens the model should generate per response.
         max_tokens: process.env.LOCAL_LLM_MAX_TOKENS || 500,
         // The token at which to stop generating. See your model card or underlying model card as a reference.
