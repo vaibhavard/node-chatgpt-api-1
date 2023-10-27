@@ -183,8 +183,6 @@ export default class LocalLLMClient {
             });
             orderedMessages[1].parentMessageId = systemMessageId;
         }
-        // overwrite the conversation.messages with new message array
-        messages = orderedMessages;
 
         orderedMessages = orderedMessages.map(message => ({
             role: message.role,
