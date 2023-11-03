@@ -97,7 +97,7 @@ export default {
         // Determines the randomness of replies.
         top_p: process.env.LOCAL_LLM_TOP_P,
         // Makes model more or less likely to use similar tokens in the same conversation.
-        presence_penalty: process.env.LOCAL_LLM_PRESENCE_PENALTY || 1.1,
+        presence_penalty: process.env.LOCAL_LLM_PRESENCE_PENALTY || 1.18,
         // Makes model more or less likely to use similar tokens in the same conversation.
         frequency_penalty: process.env.LOCAL_LLM_FREQUENCY_PENALTY,
         // The maximum tokens the model should generate per response.

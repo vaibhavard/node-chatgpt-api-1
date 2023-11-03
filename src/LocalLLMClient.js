@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import Keyv from 'keyv';
 import { fetchEventSource } from '@waylaidwanderer/fetch-event-source';
 import { Agent } from 'undici';
-import llamaTokenizer from 'llama-tokenizer-js';
 
 export default class LocalLLMClient {
     constructor(
@@ -34,7 +33,7 @@ export default class LocalLLMClient {
                     stream: options.stream || true,
                     temperature: options.temperature || 0.8,
                     top_p: options.top_p,
-                    presence_penalty: options.presence_penalty || 1.1,
+                    presence_penalty: options.presence_penalty || 1.18,
                     frequency_penalty: options.frequency_penalty,
                     max_tokens: options.max_tokens || 500,
                     stop: options.stop || ['### Instruction: '],
@@ -91,7 +90,7 @@ export default class LocalLLMClient {
             id: crypto.randomUUID(),
             parentMessageId,
             role: 'user',
-            message: this.options.startToken + message + this.options.endToken,
+            message,
         };
         conversation.messages.push(userMessage);
         this.options.modelOptions.messages = await this.#buildPrompt(conversation.messages, userMessage);
@@ -165,15 +164,6 @@ export default class LocalLLMClient {
      */
     async #buildPrompt(messages, userMessage) {
         let orderedMessages = LocalLLMClient.#getMessagesForConversation(messages, userMessage.id);
-        let currentContent = orderedMessages.map(message => message.message).join(' ');
-        let currentTokenCount = LocalLLMClient.#getTokenCount(currentContent);
-        while ((currentTokenCount + this.options.modelOptions.max_tokens) > this.options.context_tokens) {
-            const newParentId = orderedMessages[0].id;
-            orderedMessages.splice(1, 2);
-            orderedMessages[1].parentMessageId = newParentId;
-            currentContent = orderedMessages.map(message => message.message).join('');
-            currentTokenCount = LocalLLMClient.#getTokenCount(currentContent);
-        }
         // Case for when the first message gets regenerated.
         if (orderedMessages.length === 1) {
             const systemMessageId = crypto.randomUUID();
@@ -185,6 +175,7 @@ export default class LocalLLMClient {
             });
             orderedMessages[1].parentMessageId = systemMessageId;
         }
+        messages = orderedMessages;
 
         orderedMessages = orderedMessages.map(message => ({
             role: message.role,
@@ -215,15 +206,6 @@ export default class LocalLLMClient {
         }
 
         return orderedMessages;
-    }
-
-    /**
-     * Counts and returns the tokens for the text using the llama tokenizer.
-     * @param {String} text String that should the token count should be calculated for.
-     * @returns {Number} The number of tokens in the text.
-     */
-    static #getTokenCount(text) {
-        return llamaTokenizer.encode(text).length;
     }
 
     /**
