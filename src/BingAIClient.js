@@ -106,7 +106,7 @@ export default class BingAIClient {
         }
         const turingCreateURL = new URL(`${this.options.host}/turing/conversation/create`);
         const searchParams = new URLSearchParams({
-            bundleVersion: '1.864.26',
+            bundleVersion: '1.1366.4',
         });
         turingCreateURL.search = searchParams.toString();
         const response = await fetch(turingCreateURL, fetchOptions);
@@ -533,16 +533,26 @@ export default class BingAIClient {
                 {
                     source: 'cib',
                     optionsSets: [
+                        'nojbfedge', // Not included in standard message, but won't work without.
+                        'nlu_direct_response_filter',
                         'deepleo',
                         'disable_emoji_spoken_text',
+                        'responsible_ai_policy_235',
+                        // "enablemm",
                         'dv3sugg',
+                        // "autosave",
                         'iyxapbing',
                         'iycapbing',
                         toneOption,
-                        'clgalileo',
-                        ...((toneStyle === 'creative' && this.options.features.genImage) ? ['gencontentv3'] : []),
+                        'spktxtibmoff',
+                        'enelecintl',
+                        'gndelec',
+                        'gndlogcf',
+                        'gptvmodel2',
                         'eredirecturl',
-                        'nojbfedge', // Not included in standard message, but won't work without.
+                        'clgalileo',
+                        'gencontentv3',
+                        'fluxv14l',
                     ],
                     allowedMessageTypes: [
                         'ActionRequest',
@@ -560,19 +570,25 @@ export default class BingAIClient {
                         'SearchQuery',
                     ],
                     sliceIds: [
-                        'emovoice',
-                        'inochatsamob',
-                        'wrapnoins',
-                        'splitcss3p',
-                        'sydconfigoptt',
-                        '913jbfv203',
-                        '806log2sphs0',
-                        // 'streamw', leads to unwanted streaming behavior
-                        'attr1atral3',
-                        '0822localvgs0',
-                        '0901fstprmpt',
-                        'sydtransl',
-                        '926buffall',
+                        'cruiseenableux',
+                        'adssqovr',
+                        'cruiseenable',
+                        'e2eperf',
+                        'arankc_1_9_9',
+                        'rankcf',
+                        'multlingcf',
+                        'stibmoff',
+                        'caccnctat3',
+                        'styleoffwpt',
+                        'preall20',
+                        '1117gndelec',
+                        '1115rai289s0',
+                        '117invocmaxs0',
+                        '1025gptv_v2',
+                        'fluxnosearch',
+                        '1115fluxv14l',
+                        'codecreatorcf',
+                        'cacmuidarb',
                     ],
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
