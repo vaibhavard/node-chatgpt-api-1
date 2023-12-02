@@ -376,9 +376,8 @@ export default class BingAIClient {
 
             const previousMessages = invocationId === 0 ? [
                 {
-                    text: this.options.useBase64
-                        ? process.env.SYSTEM_MESSAGE + process.env.SYSTEM_MESSAGE_BASE64 : process.env.SYSTEM_MESSAGE
-                    || systemMessage,
+                    text: systemMessage || (this.options.useBase64
+                        ? process.env.SYSTEM_MESSAGE_BASE64 : process.env.SYSTEM_MESSAGE),
                     author: 'system',
                 },
                 ...previousCachedMessages,
