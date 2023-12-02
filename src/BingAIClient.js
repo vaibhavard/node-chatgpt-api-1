@@ -214,6 +214,36 @@ export default class BingAIClient {
         return data;
     }
 
+    /**
+     * Resolves the ids of the plugins and returns an array to be used for the request.
+     * @param {Object} plugins Object containing the plugins to use as strings.
+     * @returns The resolved array as it should be used in a request.
+     */
+    static async #resolvePlugins(plugins) {
+        const pluginLookup = {
+            instacart: '46664d33-1591-4ce8-b3fb-ba1022b66c11',
+            kayak: 'd6be744c-2bd9-432f-95b7-76e103946e34',
+            klarna: '5f143ea3-8c80-4efd-9515-185e83b7cf8a',
+            openTable: '543a7b1b-ebc6-46f4-be76-00c202990a1b',
+            shop: '39e3566a-d481-4d99-82b2-6d739b1e716e',
+        };
+        let resolvedPlugins = [];
+        if (plugins) {
+            const keys = Object.keys(plugins);
+            const filteredPlugins = keys.filter(key => plugins[key]);
+            for (const plugin of filteredPlugins) {
+                const id = pluginLookup[plugin];
+                if (id) {
+                    resolvedPlugins.push({ id });
+                }
+            }
+        } else {
+            resolvedPlugins = [];
+        }
+
+        return resolvedPlugins;
+    }
+
     async createWebSocketConnection(conversationSignature) {
         return new Promise((resolve, reject) => {
             const ws = new WebSocket(
@@ -287,6 +317,7 @@ export default class BingAIClient {
             conversationId,
             conversationSignature,
             clientId,
+            plugins,
         } = opts;
 
         const {
@@ -390,6 +421,8 @@ export default class BingAIClient {
         const imageURL = opts?.imageURL;
         const imageBase64 = imageURL ? await BingAIClient.getBase64FromImageUrl(imageURL) : opts?.imageBase64;
         const imageUploadResult = imageBase64 ? await this.uploadImage(imageBase64) : undefined;
+        const noSearch = plugins.search === false ? 'nosearchall' : undefined;
+        plugins = await BingAIClient.#resolvePlugins(plugins);
         const webSocketParameters = {
             message,
             invocationId,
@@ -398,6 +431,8 @@ export default class BingAIClient {
             clientId,
             conversationId,
             ...imageUploadResult && { imageUploadResult },
+            plugins,
+            noSearch,
         };
 
         const ws = await this.createWebSocketConnection(conversationSignature);
@@ -517,6 +552,8 @@ export default class BingAIClient {
             clientId,
             conversationId,
             imageUploadResult = undefined,
+            plugins,
+            noSearch,
         } = webSocketParameters;
         const imageBaseURL = 'https://www.bing.com/images/blob?bcid=';
 
@@ -553,6 +590,7 @@ export default class BingAIClient {
                         'clgalileo',
                         'gencontentv3',
                         'fluxv14l',
+                        ...(noSearch !== undefined ? [noSearch] : []),
                     ],
                     allowedMessageTypes: [
                         'ActionRequest',
@@ -590,6 +628,7 @@ export default class BingAIClient {
                         'codecreatorcf',
                         'cacmuidarb',
                     ],
+                    plugins,
                     traceId: genRanHex(32),
                     isStartOfSession: invocationId === 0,
                     message: {

@@ -115,6 +115,7 @@ server.post('/conversation', async (request, reply) => {
             jailbreakConversationId,
             toneStyle,
             systemMessage,
+            plugins,
         } = body;
         const messageOptions = {
             conversationId: body.conversationId ? body.conversationId.toString() : undefined,
@@ -130,6 +131,7 @@ server.post('/conversation', async (request, reply) => {
             ...(clientToUseForMessage === 'bing' && { jailbreakConversationId }),
             ...(clientToUseForMessage === 'bing' && { toneStyle }),
             ...((clientToUseForMessage === 'bing') && { systemMessage }),
+            ...((clientToUseForMessage === 'bing') && { plugins }),
             onProgress,
             abortController,
         };
