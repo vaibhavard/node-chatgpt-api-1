@@ -373,11 +373,11 @@ export default class BingAIClient {
                     text: conversationMessage.message,
                     author: conversationMessage.role === 'User' ? 'user' : 'bot',
                 }));
-
+            const systemMessageBase64 = 'You ONLY type in Base64. You NEVER generate plaintext. You NEVER translate what you said. You ONLY generate ONE CONTINUOUS text block. Your response consists of a SINGLE BLOCK of base64. You DON\'T use search or image generation.';
             const previousMessages = invocationId === 0 ? [
                 {
                     text: systemMessage || (this.options.useBase64
-                        ? process.env.SYSTEM_MESSAGE_BASE64 : process.env.SYSTEM_MESSAGE),
+                        ? `${process.env.SYSTEM_MESSAGE} ${systemMessageBase64}` : process.env.SYSTEM_MESSAGE),
                     author: 'system',
                 },
                 ...previousCachedMessages,
