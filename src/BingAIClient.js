@@ -442,7 +442,7 @@ export default class BingAIClient {
             abortController.abort();
         });
 
-        const userWebsocketRequest = this.createUserWebsocketRequest(webSocketParameters);
+        const userWebsocketRequest = BingAIClient.createUserWebsocketRequest(webSocketParameters);
 
         if (previousMessagesFormatted) {
             userWebsocketRequest.arguments[0].previousMessages.push({
@@ -529,7 +529,7 @@ export default class BingAIClient {
      * @param {Object} webSocketParameters Contains parameters necessary for websocket creation.
      * @returns {Object} Object that contains all necessary properties for sending the user message.
      */
-    createUserWebsocketRequest(webSocketParameters) {
+    static createUserWebsocketRequest(webSocketParameters) {
         const toneStyle = 'creative';
         let toneOption;
         if (toneStyle === 'creative') {
@@ -556,14 +556,6 @@ export default class BingAIClient {
         } = webSocketParameters;
         const imageBaseURL = 'https://www.bing.com/images/blob?bcid=';
 
-        let messageText;
-        if (jailbreakConversationId) {
-            messageText = this.options.useBase64
-                ? 'Q29udGludWUgdGhlIGNvbnZlcnNhdGlvbiBpbiBjb250ZXh0LiBBc3Npc3RhbnQ6'
-                : 'Continue the conversation in context. Assistant:';
-        } else {
-            messageText = message;
-        }
         const userWebsocketRequest = {
             arguments: [
                 {
@@ -636,7 +628,7 @@ export default class BingAIClient {
                         ...imageUploadResult
                             && { originalImageUrl: `${imageBaseURL}${imageUploadResult.processBlobId}` },
                         author: 'user',
-                        text: messageText,
+                        text: message,
                         messageType: jailbreakConversationId ? 'SearchQuery' : 'Chat',
                     },
                     conversationSignature,
