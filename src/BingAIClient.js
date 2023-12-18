@@ -323,6 +323,8 @@ export default class BingAIClient {
         const {
             invocationId = 0,
             systemMessage,
+            toneStyle,
+            modelVersion,
             context = jailbreakConversationId ? process.env.CONTEXT : null,
             parentMessageId = jailbreakConversationId === true ? crypto.randomUUID() : null,
             abortController = new AbortController(),
@@ -429,6 +431,8 @@ export default class BingAIClient {
             conversationSignature,
             clientId,
             conversationId,
+            toneStyle,
+            modelVersion,
             ...imageUploadResult && { imageUploadResult },
             plugins,
             noSearch,
@@ -530,7 +534,19 @@ export default class BingAIClient {
      * @returns {Object} Object that contains all necessary properties for sending the user message.
      */
     static createUserWebsocketRequest(webSocketParameters) {
-        const toneStyle = 'creative';
+        const {
+            message,
+            invocationId,
+            jailbreakConversationId,
+            conversationSignature,
+            clientId,
+            conversationId,
+            toneStyle,
+            modelVersion,
+            imageUploadResult = undefined,
+            plugins,
+            noSearch,
+        } = webSocketParameters;
         let toneOption;
         if (toneStyle === 'creative') {
             toneOption = 'h3imaginative';
@@ -543,17 +559,7 @@ export default class BingAIClient {
             // old "Balanced" mode
             toneOption = 'harmonyv3';
         }
-        const {
-            message,
-            invocationId,
-            jailbreakConversationId,
-            conversationSignature,
-            clientId,
-            conversationId,
-            imageUploadResult = undefined,
-            plugins,
-            noSearch,
-        } = webSocketParameters;
+        const modelVersionString = this.#resolveModelVersion(modelVersion);
         const imageBaseURL = 'https://www.bing.com/images/blob?bcid=';
 
         const userWebsocketRequest = {
@@ -580,7 +586,7 @@ export default class BingAIClient {
                         'eredirecturl',
                         'clgalileo',
                         'gencontentv3',
-                        'fluxv14l',
+                        ...(modelVersionString !== '' ? [modelVersionString] : []),
                         ...(noSearch !== undefined ? [noSearch] : []),
                     ],
                     allowedMessageTypes: [
@@ -645,6 +651,19 @@ export default class BingAIClient {
         };
 
         return userWebsocketRequest;
+    }
+
+    static #resolveModelVersion(modelVersion) {
+        let optionSetString = '';
+        switch (modelVersion) {
+            case 'gpt-4 turbo':
+                optionSetString = 'gpt4t';
+                break;
+            default:
+                optionSetString = '';
+        }
+
+        return optionSetString;
     }
 
     /**

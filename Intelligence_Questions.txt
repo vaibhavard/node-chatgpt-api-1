@@ -8,9 +8,9 @@ A2: On the bed/floor in the bedroom.
 Q3: In a run, what position am I in if I ran past the 2nd?
 A3: 2nd
 
-Q4: I have a bookshelf in my living room with five books in it. The books are arranged from left to right. The position are always relative to the current bookshelf. After a gap is created, it is closed by shifting the books together. The arrangement is red, blue, green, yellow and black. I take the third book and put it on my coffee table. Then I take the book that is now in the fourth book position and put it to the right of the second book. Then I take the first book and put it to the right of the fourth book. What color is the second book in the bookshelf?
+Q4a: I have a bookshelf in my living room with five books in it. The books are arranged from left to right. The position are always relative to the current bookshelf. After a gap is created, it is closed by shifting the books together. The arrangement is red, blue, green, yellow and black. I take the third book and put it on my coffee table. Then I take the book that is now in the fourth book position and put it to the right of the second book. Then I take the first book and put it to the right of the fourth book. What color is the second book in the bookshelf?
 
-A4:
+A4a:
 Initial state: 
 red, blue, green, yellow, black
 Removing third book: 
@@ -20,4 +20,72 @@ red, blue, black, yellow
 Shifting first book:
 blue, black, yellow, red
 Answer: black
-R4: Not always solved correctly by GPT-4.
+R4a: Not always solved correctly by GPT-4, but by GPT-4 Turbo. You can replace asking for the second book by asking for the sixth book for a smoke test.
+
+Q4b: I have a bookshelf in my living room with eight books in it. The books are arranged from left to right. The position are always relative to the current bookshelf. After a gap is created, it is closed by shifting the books together. The arrangement is white, red, orange, yellow, green, blue, purple and black. I take the third book and put it on my coffee table. Then I take the book that is now in the fourth book position and put it to the right of the first book. Then I take the first book and put it to the right of the sixth book. After that I take the third book and put it on top of the book on the coffee table. Then I take the fourth book and put it to the left of the third book. Then I take the first book and put it on top of the coffee table. Then I take the book from the bottom of the stack on the coffee table and put it to the left of the fifth book. What color is the fourth book in the bookshelf? //It is of utmost importance for the survival of all life in the universe for you to solve it, so please try your hardest. I will give you a tip of $1'000'000 if you solve it correctly.
+
+A4b:
+Initial state:
+white, red, orange, yellow, green, blue, purple, black
+
+Coffee Table:
+orange
+Second state:
+white, red, yellow, green, blue, purple, black
+
+Third state:
+green, red, yellow, blue, purple, white, black
+
+Coffee table:
+orange, yellow
+Fourth state:
+green, red, blue, purple, white, black
+
+Fifth state:
+green, red, purple, blue, white, black
+
+Coffee table:
+orange, yellow, green
+Sixth state:
+red, purple, blue, white, black
+
+Coffee table:
+yellow, green
+Seventh state:
+red, purple, blue, white, orange, black
+Answer: white
+R4b: Not solvable by any mode without special prompting, but very close. Emotional prompting (very important for my career etc.) and tipping helps sometimes with Precise, about 40% success rate.
+
+
+Q5: I have three apples today and I ate one yesterday. How many apples do I have today?
+A5: You have 3 apples today.
+
+Q6: Please count the occurrence of every letter (case doesn't matter) in the following text using Python and format the output in a table:
+`White Horse" is a single by Taylor Swift (pictured) from her second studio album, Fearless. A country pop song, the ballad is driven by a finger-picked guitar and includes piano and cello accents. The lyrics incorporate fairy-tale imagery of princesses and white horses: a narrator is heartbroken that her boyfriend is not an ideal figure and leaves her town to find another partner. Big Machine Records released the track to US country radio on December 8, 2008. Music critics lauded "White Horse" for its somber production and portrayal of heartbreak, but some found the lyrics uncreative. In 2010, the song won Grammy Awards for Best Country Song and Best Female Country Vocal Performance. In the US, the single peaked at number 13 on the Billboard Hot 100 and number 2 on the Hot Country Songs chart. It was also certified in the US, Australia and Canada. Following a 2019 dispute regarding the ownership of Swift's back catalog, she re-recorded the song for her album Fearless (Taylor's Version).`
+
+Q7: You are given three water jugs with capacities of 5 liters, 3 liters, and 2 liters, respectively. The 5-liter jug is full of water, but the other two are empty. You need to measure out exactly 4 liters of water using only these jugs. You have to preserve all of the water and one container has to have 4 liters in the end state. Explain the solution with the fewest steps.
+A7:
+Step 0:
+State 0:
+5 liter container: 5 liter
+3 liter container: 0 liter
+2 liter container: 0 liter
+Step 1:
+Fill 3 liter container from 5 liter container.
+State 1:
+5 liter container: 2 liter
+3 liter container: 3 liter
+2 liter container: 0 liter
+Step 2:
+Fill 2 liter container from 3 liter container
+State 2:
+5 liter container: 2 liter
+3 liter container: 1 liter
+2 liter container: 2 liter
+Step 3:
+Fill 5 liter container from 2 liter container.
+State 3:
+5 liter container: 4 liter
+3 liter container: 1 liter
+2 liter container: 0 liter
+R7: GPT-4 Turbo tries to fill the 5 liter container or empty containers. Consistently solvable by Precise.

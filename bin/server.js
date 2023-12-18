@@ -114,6 +114,7 @@ server.post('/conversation', async (request, reply) => {
             invocationId,
             jailbreakConversationId,
             toneStyle,
+            modelVersion,
             systemMessage,
             plugins,
         } = body;
@@ -130,6 +131,7 @@ server.post('/conversation', async (request, reply) => {
             ...(clientToUseForMessage === 'bing' && { invocationId }),
             ...(clientToUseForMessage === 'bing' && { jailbreakConversationId }),
             ...(clientToUseForMessage === 'bing' && { toneStyle }),
+            ...(clientToUseForMessage === 'bing' && { modelVersion }),
             ...((clientToUseForMessage === 'bing') && { systemMessage }),
             ...((clientToUseForMessage === 'bing') && { plugins }),
             onProgress,
