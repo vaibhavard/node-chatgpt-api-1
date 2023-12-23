@@ -116,6 +116,7 @@ server.post('/conversation', async (request, reply) => {
             toneStyle,
             modelVersion,
             systemMessage,
+            showSuggestions,
             plugins,
         } = body;
         const messageOptions = {
@@ -133,6 +134,7 @@ server.post('/conversation', async (request, reply) => {
             ...(clientToUseForMessage === 'bing' && { toneStyle }),
             ...(clientToUseForMessage === 'bing' && { modelVersion }),
             ...((clientToUseForMessage === 'bing') && { systemMessage }),
+            ...((clientToUseForMessage === 'bing') && { showSuggestions }),
             ...((clientToUseForMessage === 'bing') && { plugins }),
             onProgress,
             abortController,

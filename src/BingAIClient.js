@@ -828,7 +828,13 @@ export default class BingAIClient {
                                 eventMessage.adaptiveCards[0].body[0].text = eventMessage.text;
                             }
                         }
-                        if ((this.options.showSuggestions === false || this.options.useBase64)
+                        let showSuggestions;
+                        if (opts.showSuggestions !== undefined) {
+                            showSuggestions = opts.showSuggestions;
+                        } else if (this.options.showSuggestions !== undefined) {
+                            showSuggestions = this.options.showSuggestions;
+                        }
+                        if ((showSuggestions === false || this.options.useBase64 === true)
                                 && eventMessage.suggestedResponses) {
                             delete eventMessage.suggestedResponses;
                         }
