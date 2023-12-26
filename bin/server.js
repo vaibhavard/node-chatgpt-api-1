@@ -117,6 +117,7 @@ server.post('/conversation', async (request, reply) => {
             modelVersion,
             systemMessage,
             showSuggestions,
+            useBase64,
             plugins,
         } = body;
         const messageOptions = {
@@ -133,9 +134,10 @@ server.post('/conversation', async (request, reply) => {
             ...(clientToUseForMessage === 'bing' && { jailbreakConversationId }),
             ...(clientToUseForMessage === 'bing' && { toneStyle }),
             ...(clientToUseForMessage === 'bing' && { modelVersion }),
-            ...((clientToUseForMessage === 'bing') && { systemMessage }),
-            ...((clientToUseForMessage === 'bing') && { showSuggestions }),
-            ...((clientToUseForMessage === 'bing') && { plugins }),
+            ...(clientToUseForMessage === 'bing' && { systemMessage }),
+            ...(clientToUseForMessage === 'bing' && { showSuggestions }),
+            ...(clientToUseForMessage === 'bing' && { useBase64 }),
+            ...(clientToUseForMessage === 'bing' && { plugins }),
             onProgress,
             abortController,
         };
