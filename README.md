@@ -99,9 +99,12 @@ One of the main difference is the implementation of a "jailbreak" mode.  Which h
 - Use a custom system message to redefine the AI's behavior**
 - Include a context message to include some more information about you or the AI (you can also include it in the system message)
 - Disable or enable suggestions
+- Use all plugins in  a single chat instead of 3.
 - Communicate in base64 (answer quality will deteriorate)  
 \* Because the second layer moderation can't be circumvented, responses may get cut off. You may use base64 to circumvent that issue, but the quality of the answer will suffer.  
 \** Because the original system message is always included, you have to negate it in your custom system message. See the `.env.example` for an example system message.
+
+
 
 ## Prerequisites
 - Node.js 18+
@@ -130,6 +133,24 @@ One of the main difference is the implementation of a "jailbreak" mode.  Which h
 9. Run the `Node-GPT_And_Pandora_Run.ps1` file to start both servers.
 10. Open a browser and enter the url from the `NUXT_PUBLIC_API_BASE_URL` value.
 
+## Conversation endpoint parameters
+This section will elaborate the parameters that are specific to Bing Chat that are able to be sent using the request body of the conversation endpoint.  
+- `clientId`: Empty for first request and used for subsequent requests
+- `conversationSignature`: Empty for first request and used for subsequent requests
+- `conversationId`: Empty for first request and used for subsequent requests
+- `jailbreakConversationId`: Set to `true` for first request to enable jailbreak mode and used for subsequent requests
+- `toneStyle`: The mode Bing should use. Valid values are `["creative", "fast", "precise"]`
+- `invocationId`: The index of the message. Empty for first message and gets incremented by one for each ended user turn.
+- `imageBase64`: (optional) base64 string of an image bing should analyze
+- `imageURL`: (optional) URL of an image that Bing should analyze. Has precedence over imageBase64 if both parameters are passed.
+- `modelVersion`: Used to toggle between models. Passing `gpt-4 turbo` will use GPT-4 Turbo. Any other string uses the default model defined by the optionSet
+- `systemMessage`: Used when enabling jailbreak mode. Add another system message to the AI.
+- `showSuggestions`: Toggles the three suggestions by the suggestion AI to be returned
+- `useBase64`: Adds a section to the system message to tell the AI to use base64
+- `userUserSuffixMessage`: Adds a message by the user reading `Continue the message in the current Context` which will prevent the moderation filter to trigger for user messages, but may confuse the AI
+- `plugins`: Enables the plugins in the array with the value `true`. See the `#resolvePlugins` method in the `BingAIClient.js` class for valid plugins
+
+
 # ChatGPT API
 
 > A client implementation for ChatGPT and Bing AI. Available as a Node.js module, REST API server, and CLI app.
@@ -145,6 +166,7 @@ One of the main difference is the implementation of a "jailbreak" mode.  Which h
   - [Features](#features)
   - [Prerequisites](#prerequisites)
   - [Getting started](#getting-started)
+  - [Conversation endpoint parameters](#conversation-endpoint-parameters)
 - [ChatGPT API](#chatgpt-api)
 - [Table of Contents](#table-of-contents)
   - [Features](#features-1)
