@@ -438,7 +438,7 @@ export default class BingAIClient {
         const imageURL = opts?.imageURL;
         const imageBase64 = imageURL ? await BingAIClient.getBase64FromImageUrl(imageURL) : opts?.imageBase64;
         const imageUploadResult = imageBase64 ? await this.uploadImage(imageBase64) : undefined;
-        const noSearch = plugins.search === false ? 'nosearchall' : undefined;
+        const noSearch = plugins?.search === false ? 'nosearchall' : undefined;
         plugins = await BingAIClient.#resolvePlugins(plugins);
         const webSocketParameters = {
             message,
