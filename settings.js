@@ -63,6 +63,7 @@ export default {
         useBase64: process.env.USE_BASE64 === 'true',
         // Set to false to disable suggestions
         showSuggestions: process.env.SHOW_SUGGESTIONS !== 'false',
+        systemMessage: process.env.SYSTEM_MESSAGE,
     },
     chatGptBrowserClient: {
         // (Optional) Support for a reverse proxy for the conversation endpoint (private API server).

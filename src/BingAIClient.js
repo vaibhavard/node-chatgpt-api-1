@@ -335,11 +335,12 @@ export default class BingAIClient {
             conversationSignature,
             clientId,
             plugins,
+            systemMessage,
         } = opts;
+        systemMessage = systemMessage || this.options.systemMessage;
 
         const {
             invocationId = 0,
-            systemMessage,
             toneStyle,
             modelVersion,
             context = jailbreakConversationId ? process.env.CONTEXT : null,

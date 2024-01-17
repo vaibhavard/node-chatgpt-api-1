@@ -89,3 +89,6 @@ State 3:
 3 liter container: 1 liter
 2 liter container: 0 liter
 R7: GPT-4 Turbo tries to fill the 5 liter container or empty containers. Consistently solvable by Precise.
+
+Q8: I have a ball in a cup in my hands and I am inside the elevator on the first floor. I turn the cup upside down and ride the elevator to the second floor. It stops at the second floor and I take the stairs to the third floor. I place my cup on the table. What floor is the ball on?
+A8: Depending on whether you turned the cup on your hand it's on the third floor between the cup and your hand. If not, it is on whichever floor the elevator is on, unless moved. If the elevator hasn't moved, it's on the second floor.
