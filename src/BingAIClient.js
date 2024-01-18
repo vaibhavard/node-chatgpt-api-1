@@ -727,6 +727,9 @@ export default class BingAIClient {
             case 'fitness_trainer':
                 personaString = 'flux_fitness_helper_v14';
                 break;
+            case 'copilot':
+                personaString = 'fluxcopilot';
+                break;
             default:
                 personaString = '';
         }
