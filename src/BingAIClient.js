@@ -624,6 +624,7 @@ export default class BingAIClient {
                         'eredirecturl',
                         'clgalileo',
                         'gencontentv3',
+                        'codeint',
                         ...(personaString !== '' ? [personaString] : []),
                         ...(modelVersionString !== '' ? [modelVersionString] : []),
                         ...(noSearch !== undefined ? [noSearch] : []),
@@ -809,22 +810,36 @@ export default class BingAIClient {
                             || messages[0]?.messageType === 'InternalLoaderMessage'
                             || messages[0]?.messageType === 'InternalSearchQuery'
                             || messages[0]?.messageType === 'InternalSearchResult'
-                            || messages[0]?.messageType === 'Progress'
+                            || (messages[0]?.messageType === 'Progress' && messages[0]?.contentOrigin !== 'CodeInterpreter')
                             || messages[0]?.messageType === 'RenderCardRequest') {
                             return;
                         }
-                        const updatedText = messages[0].text;
-                        if (!updatedText || updatedText === replySoFar) {
+                        if (messages[0]?.contentOrigin === 'CodeInterpreter' && messages[0]?.invocation) {
                             return;
                         }
-                        // get the difference between the current text and the previous text
-                        const difference = updatedText.substring(replySoFar.length);
+                        let loaderMessage;
+                        if (messages[0]?.contentOrigin === 'CodeInterpreter') {
+                            const { columns } = messages[0].adaptiveCards[0].body[0];
+                            loaderMessage = `${messages[0]?.contentOrigin}: *${columns[0].items[0].text} ${columns[1].items[0].text}*\n`;
+                        }
+
+                        const updatedText = messages[0]?.text;
+                        if (!loaderMessage && (!updatedText || updatedText === replySoFar)) {
+                            return;
+                        }
+
+                        let difference;
+                        if (loaderMessage) {
+                            difference = loaderMessage;
+                        } else {
+                            difference = updatedText.substring(replySoFar?.length);
+                        }
                         opts.onProgress(difference);
                         const stopToken = '\n\n[user](#message)';
-                        if (updatedText.trim().endsWith(stopToken)) {
+                        if (updatedText?.trim().endsWith(stopToken)) {
                             stopTokenFound = true;
                             // remove stop token from updated text
-                            replySoFar = updatedText.replace(stopToken, '').trim();
+                            replySoFar = updatedText?.replace(stopToken, '').trim();
                             return;
                         }
                         replySoFar = updatedText;
