@@ -54,273 +54,6 @@ export default class BingAIClient {
         }
     }
 
-    static getValidIPv4(ip) {
-        const match = !ip
-            || ip.match(/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([0-9]|[1-2][0-9]|3[0-2]))?$/);
-        if (match) {
-            if (match[5]) {
-                const mask = parseInt(match[5], 10);
-                let [a, b, c, d] = ip.split('.').map(x => parseInt(x, 10));
-                // eslint-disable-next-line no-bitwise
-                const max = (1 << (32 - mask)) - 1;
-                const rand = Math.floor(Math.random() * max);
-                d += rand;
-                c += Math.floor(d / 256);
-                d %= 256;
-                b += Math.floor(c / 256);
-                c %= 256;
-                a += Math.floor(b / 256);
-                b %= 256;
-                return `${a}.${b}.${c}.${d}`;
-            }
-            return ip;
-        }
-        return undefined;
-    }
-
-    async createNewConversation() {
-        this.headers = {
-            accept: 'application/json',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
-            cookie: this.options.cookies || (this.options.userToken ? `_U=${this.options.userToken}` : undefined),
-        };
-        // filter undefined values
-        this.headers = Object.fromEntries(
-            Object.entries(this.headers)
-                .filter(([, value]) => value !== undefined),
-        );
-
-        const fetchOptions = {
-            headers: this.headers,
-        };
-        if (this.options.proxy) {
-            fetchOptions.dispatcher = new ProxyAgent(this.options.proxy);
-        } else {
-            fetchOptions.dispatcher = new Agent({ connect: { timeout: 30_000 } });
-        }
-        const turingCreateURL = new URL(`${this.options.host}/turing/conversation/create`);
-        const searchParams = new URLSearchParams({
-            bundleVersion: '1.1381.15',
-        });
-        turingCreateURL.search = searchParams.toString();
-        const response = await fetch(turingCreateURL, fetchOptions);
-        const bodyString = await response.text();
-        try {
-            const body = JSON.parse(bodyString);
-            body.conversationSignature = response.headers.get('x-sydney-encryptedconversationsignature');
-            return body;
-        } catch (err) {
-            throw new Error('/turing/conversation/create: failed to parse response body.\n');
-        }
-    }
-
-    /**
-     * Method to obtain a new cookie as an anonymous user. Excessive use may result in a temporary IP ban, so a usual user cookie should be preferred.
-     * However to remedy a potential temporary ban you may delete the "ANON" cookie in the browser storage.
-     * @returns A new cookie. May however be less usable than a regular cookie.
-     */
-    static async getNewCookie() {
-        try {
-            const response = await fetch('https://www.bing.com/turing/conversation/create', { method: 'GET' });
-            const header = response.headers.get('set-cookie');
-            const cookieValue = header.match(/MUIDB=([^;]+)/) ? header.match(/MUIDB=([^;]+)/)[1] : undefined;
-            return cookieValue;
-        } catch (error) {
-            console.error(error);
-        }
-        return undefined;
-    }
-
-    /**
-     * Method to obtain base64 string of the image from the supplied URL.
-     * To be used when uploading an image for image recognition.
-     * @param {string} imageUrl URL of the image to convert to base64 string.
-     * @returns Base64 string of the image from the supplied URL.
-     */
-    static async getBase64FromImageUrl(imageUrl) {
-        let base64String;
-        try {
-            const response = await fetch(imageUrl, { method: 'GET' });
-            if (response.ok) {
-                const imageBlob = await response.blob();
-                const arrayBuffer = await imageBlob.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
-                base64String = buffer.toString('base64');
-            } else {
-                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error(error);
-        }
-        return base64String;
-    }
-
-    /**
-     * Method to upload image to blob storage to later be incorporated in the user message.
-     * The returned "blobId" is used in the originalImageUrl like this:
-     * imageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
-     * The returned "processBlobId" is used in the imageUrl like this:
-     * originalImageUrl:            'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
-     * @param {string} imageBase64 The base64 string of the image to upload to blob storage.
-     * @returns {object} An object containing the "blobId" and "processBlobId" for the image.
-     */
-    async uploadImage(imageBase64) {
-        let data;
-        try {
-            const knowledgeRequestBody = {
-                imageInfo: {},
-                knowledgeRequest: {
-                    invokedSkills: ['ImageById'],
-                    subscriptionId: 'Bing.Chat.Multimodal',
-                    invokedSkillsRequestData: { enableFaceBlur: true }, // enableFaceBlur has to be enabled, or you won't get a processBlobId
-                    convoData: { convoid: '', convotone: 'Creative' }, // convoId seems to be irrelevant
-                },
-            };
-
-            const body = '------WebKitFormBoundary\r\n'
-            + 'Content-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
-            + `${JSON.stringify(knowledgeRequestBody)}\r\n`
-            + '------WebKitFormBoundary\r\n'
-            + 'Content-Disposition: form-data; name="imageBase64"\r\n\r\n'
-            + `${imageBase64}\r\n`
-            + '------WebKitFormBoundary--\r\n';
-
-            const response = await fetch('https://www.bing.com/images/kblob', {
-                headers: {
-                    accept: '*/*',
-                    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary',
-                    cookie: this.options.cookies || `_U=${this.options.userToken}`,
-                    Referer: 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx',
-                    'Referrer-Policy': 'origin-when-cross-origin',
-                },
-                body,
-                method: 'POST',
-            });
-            if (response.ok) {
-                data = await response.json();
-            } else {
-                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error(error);
-        }
-
-        return data;
-    }
-
-    /**
-     * Resolves the id and hex value of the plugins and returns an array to be used for the request.
-     * @param {Object} plugins Object containing the plugins to use as strings.
-     * @returns {Object[]} The resolved array of plugin objects that can be used later.
-     */
-    static async #resolvePlugins(plugins) {
-        const pluginLookup = {
-            instacart: {
-                id: '46664d33-1591-4ce8-b3fb-ba1022b66c11',
-                hex: '0A402EDC',
-            },
-            kayak: {
-                id: 'd6be744c-2bd9-432f-95b7-76e103946e34',
-                hex: 'C0BB4EAB',
-            },
-            klarna: {
-                id: '5f143ea3-8c80-4efd-9515-185e83b7cf8a',
-                hex: '606E9E5D',
-            },
-            openTable: {
-                id: '543a7b1b-ebc6-46f4-be76-00c202990a1b',
-                hex: 'E05D72DE',
-            },
-            search: {
-                id: 'c310c353-b9f0-4d76-ab0d-1dd5e979cf68',
-                hex: '',
-            },
-            shop: {
-                id: '39e3566a-d481-4d99-82b2-6d739b1e716e',
-                hex: '2E842A93',
-            },
-            suno: {
-                id: '22b7f79d-8ea4-437e-b5fd-3e21f09f7bc1',
-                hex: '014CB21D',
-            },
-        };
-        let resolvedPlugins = [];
-        if (plugins) {
-            const keys = Object.keys(plugins);
-            const filteredPlugins = keys.filter(key => plugins[key]);
-            for (const plugin of filteredPlugins) {
-                const pluginData = pluginLookup[plugin];
-                if (pluginData) {
-                    resolvedPlugins.push(pluginData);
-                }
-            }
-        } else {
-            resolvedPlugins = [];
-        }
-
-        return resolvedPlugins;
-    }
-
-    async createWebSocketConnection(conversationSignature) {
-        return new Promise((resolve, reject) => {
-            const ws = new WebSocket(
-                `wss://sydney.bing.com/sydney/ChatHub?sec_access_token=${encodeURIComponent(conversationSignature)}`,
-                { headers: this.headers },
-            );
-
-            ws.on('error', err => reject(err));
-
-            ws.on('open', () => {
-                if (this.debug) {
-                    console.debug('performing handshake');
-                }
-                ws.send('{"protocol":"json","version":1}\u001E');
-            });
-
-            ws.on('close', () => {
-                if (this.debug) {
-                    console.debug('disconnected');
-                }
-            });
-
-            ws.on('message', (data) => {
-                const objects = data.toString().split('\u001E');
-                const messages = objects.map((object) => {
-                    try {
-                        return JSON.parse(object);
-                    } catch (error) {
-                        return object;
-                    }
-                }).filter(message => message);
-                if (messages.length === 0) {
-                    return;
-                }
-                if (typeof messages[0] === 'object' && Object.keys(messages[0]).length === 0) {
-                    if (this.debug) {
-                        console.debug('handshake established');
-                    }
-                    // ping
-                    ws.bingPingInterval = setInterval(() => {
-                        ws.send('{"type":6}\u001E');
-                        // same message is sent back on/after 2nd time as a pong
-                    }, 15 * 1000);
-                    resolve(ws);
-                    return;
-                }
-                if (this.debug) {
-                    console.debug(JSON.stringify(messages));
-                    console.debug();
-                }
-            });
-        });
-    }
-
-    static cleanupWebSocketConnection(ws) {
-        clearInterval(ws.bingPingInterval);
-        ws.close();
-        ws.removeAllListeners();
-    }
-
     async sendMessage(
         message,
         opts = {},
@@ -350,7 +83,7 @@ export default class BingAIClient {
         } = opts;
 
         if (jailbreakConversationId || !conversationSignature || !conversationId || !clientId) {
-            const createNewConversationResponse = await this.createNewConversation();
+            const createNewConversationResponse = await this.#createNewConversation();
             if (this.debug) {
                 console.debug(createNewConversationResponse);
             }
@@ -459,7 +192,7 @@ export default class BingAIClient {
             persona,
         };
 
-        const ws = await this.createWebSocketConnection(conversationSignature);
+        const ws = await this.#createWebSocketConnection(conversationSignature);
 
         ws.on('error', (error) => {
             console.error(error);
@@ -467,7 +200,7 @@ export default class BingAIClient {
             abortController.abort();
         });
 
-        const userWebsocketRequest = BingAIClient.createUserWebsocketRequest(webSocketParameters);
+        const userWebsocketRequest = BingAIClient.#createUserWebsocketRequest(webSocketParameters);
 
         if (previousMessagesFormatted) {
             userWebsocketRequest.arguments[0].previousMessages.push({
@@ -505,7 +238,7 @@ export default class BingAIClient {
         const {
             message: reply,
             conversationExpiryTime,
-        } = await this.createMessagePromise(ws, abortController, opts);
+        } = await this.#createMessagePromise(ws, abortController, opts);
 
         const replyMessage = {
             id: crypto.randomUUID(),
@@ -538,15 +271,94 @@ export default class BingAIClient {
         return returnData;
     }
 
-    /**
-     * Encodes strings from UTF-8 to Base64.
-     * @param {String} text Text that should be encoded into base64 from UTF-8.
-     * @returns {String} Base64 encoded string.
-     */
-    static convertTextToBase64(text) {
-        const base64String = Buffer.from(text, 'utf-8').toString('base64');
+    async #createNewConversation() {
+        this.headers = {
+            accept: 'application/json',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+            cookie: this.options.cookies || (this.options.userToken ? `_U=${this.options.userToken}` : undefined),
+        };
+        // filter undefined values
+        this.headers = Object.fromEntries(
+            Object.entries(this.headers)
+                .filter(([, value]) => value !== undefined),
+        );
 
-        return base64String;
+        const fetchOptions = {
+            headers: this.headers,
+        };
+        if (this.options.proxy) {
+            fetchOptions.dispatcher = new ProxyAgent(this.options.proxy);
+        } else {
+            fetchOptions.dispatcher = new Agent({ connect: { timeout: 30_000 } });
+        }
+        const turingCreateURL = new URL(`${this.options.host}/turing/conversation/create`);
+        const searchParams = new URLSearchParams({
+            bundleVersion: '1.1381.15',
+        });
+        turingCreateURL.search = searchParams.toString();
+        const response = await fetch(turingCreateURL, fetchOptions);
+        const bodyString = await response.text();
+        try {
+            const body = JSON.parse(bodyString);
+            body.conversationSignature = response.headers.get('x-sydney-encryptedconversationsignature');
+            return body;
+        } catch (err) {
+            throw new Error('/turing/conversation/create: failed to parse response body.\n');
+        }
+    }
+
+    async #createWebSocketConnection(conversationSignature) {
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(
+                `wss://sydney.bing.com/sydney/ChatHub?sec_access_token=${encodeURIComponent(conversationSignature)}`,
+                { headers: this.headers },
+            );
+
+            ws.on('error', err => reject(err));
+
+            ws.on('open', () => {
+                if (this.debug) {
+                    console.debug('performing handshake');
+                }
+                ws.send('{"protocol":"json","version":1}\u001E');
+            });
+
+            ws.on('close', () => {
+                if (this.debug) {
+                    console.debug('disconnected');
+                }
+            });
+
+            ws.on('message', (data) => {
+                const objects = data.toString().split('\u001E');
+                const messages = objects.map((object) => {
+                    try {
+                        return JSON.parse(object);
+                    } catch (error) {
+                        return object;
+                    }
+                }).filter(message => message);
+                if (messages.length === 0) {
+                    return;
+                }
+                if (typeof messages[0] === 'object' && Object.keys(messages[0]).length === 0) {
+                    if (this.debug) {
+                        console.debug('handshake established');
+                    }
+                    // ping
+                    ws.bingPingInterval = setInterval(() => {
+                        ws.send('{"type":6}\u001E');
+                        // same message is sent back on/after 2nd time as a pong
+                    }, 15 * 1000);
+                    resolve(ws);
+                    return;
+                }
+                if (this.debug) {
+                    console.debug(JSON.stringify(messages));
+                    console.debug();
+                }
+            });
+        });
     }
 
     /**
@@ -554,7 +366,7 @@ export default class BingAIClient {
      * @param {Object} webSocketParameters Contains parameters necessary for websocket creation.
      * @returns {Object} Object that contains all necessary properties for sending the user message.
      */
-    static createUserWebsocketRequest(webSocketParameters) {
+    static #createUserWebsocketRequest(webSocketParameters) {
         const {
             message,
             invocationId,
@@ -585,8 +397,8 @@ export default class BingAIClient {
         }
         const modelVersionString = this.#resolveModelVersion(modelVersion);
         const imageBaseURL = 'https://www.bing.com/images/blob?bcid=';
-        const pluginIds = plugins.map(plugin => ({ id: plugin.id }));
-        const pluginHex = plugins.map(plugin => plugin.hex).filter(Boolean);
+        const pluginIds = plugins.map(plugin => ({ id: plugin.id })).filter(Boolean);
+        const pluginOptionSets = plugins.map(plugin => plugin.optionSet).filter(Boolean);
         const personaString = this.#resolvePersona(persona);
 
         let userMessageSuffix;
@@ -624,11 +436,10 @@ export default class BingAIClient {
                         'eredirecturl',
                         'clgalileo',
                         'gencontentv3',
-                        'codeint',
                         ...(personaString !== '' ? [personaString] : []),
                         ...(modelVersionString !== '' ? [modelVersionString] : []),
                         ...(noSearch !== undefined ? [noSearch] : []),
-                        ...pluginHex,
+                        ...pluginOptionSets,
                     ],
                     allowedMessageTypes: [
                         'ActionRequest',
@@ -739,13 +550,68 @@ export default class BingAIClient {
     }
 
     /**
+     * Resolves the id and optionSet value of the plugins and returns an array to be used for the request.
+     * @param {Object} plugins Object containing the plugins to use as strings.
+     * @returns {Object[]} The resolved array of plugin objects that can be used later.
+     */
+    static async #resolvePlugins(plugins) {
+        const pluginLookup = {
+            codeInterpreter: {
+                optionSet: 'codeint',
+            },
+            instacart: {
+                id: '46664d33-1591-4ce8-b3fb-ba1022b66c11',
+                optionSet: '0A402EDC',
+            },
+            kayak: {
+                id: 'd6be744c-2bd9-432f-95b7-76e103946e34',
+                optionSet: 'C0BB4EAB',
+            },
+            klarna: {
+                id: '5f143ea3-8c80-4efd-9515-185e83b7cf8a',
+                optionSet: '606E9E5D',
+            },
+            openTable: {
+                id: '543a7b1b-ebc6-46f4-be76-00c202990a1b',
+                optionSet: 'E05D72DE',
+            },
+            search: {
+                id: 'c310c353-b9f0-4d76-ab0d-1dd5e979cf68',
+            },
+            shop: {
+                id: '39e3566a-d481-4d99-82b2-6d739b1e716e',
+                hex: '2E842A93',
+            },
+            suno: {
+                id: '22b7f79d-8ea4-437e-b5fd-3e21f09f7bc1',
+                optionSet: '014CB21D',
+            },
+        };
+        let resolvedPlugins = [];
+        if (plugins) {
+            const keys = Object.keys(plugins);
+            const filteredPlugins = keys.filter(key => plugins[key]);
+            for (const plugin of filteredPlugins) {
+                const pluginData = pluginLookup[plugin];
+                if (pluginData) {
+                    resolvedPlugins.push(pluginData);
+                }
+            }
+        } else {
+            resolvedPlugins = [];
+        }
+
+        return resolvedPlugins;
+    }
+
+    /**
      * Used for creating the reply from the AI.
      * @param {WebSocket} ws The websocket the listener for the "message" even should be declared for.
      * @param {AbortController} abortController Used to abort the request when and abort event is sent.
      * @param {Object} opts Parameter of "sendMessage" method containing various properties.
      * @returns {Promise} A new message promise that contains the final reply.
      */
-    createMessagePromise(ws, abortController, opts) {
+    #createMessagePromise(ws, abortController, opts) {
         if (typeof opts.onProgress !== 'function') {
             opts.onProgress = () => { };
         }
@@ -971,5 +837,140 @@ export default class BingAIClient {
         }
 
         return orderedMessages;
+    }
+
+    static cleanupWebSocketConnection(ws) {
+        clearInterval(ws.bingPingInterval);
+        ws.close();
+        ws.removeAllListeners();
+    }
+
+    /**
+     * Method to obtain base64 string of the image from the supplied URL.
+     * To be used when uploading an image for image recognition.
+     * @param {string} imageUrl URL of the image to convert to base64 string.
+     * @returns Base64 string of the image from the supplied URL.
+     */
+    static async getBase64FromImageUrl(imageUrl) {
+        let base64String;
+        try {
+            const response = await fetch(imageUrl, { method: 'GET' });
+            if (response.ok) {
+                const imageBlob = await response.blob();
+                const arrayBuffer = await imageBlob.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                base64String = buffer.toString('base64');
+            } else {
+                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        return base64String;
+    }
+
+    /**
+     * Method to upload image to blob storage to later be incorporated in the user message.
+     * The returned "blobId" is used in the originalImageUrl like this:
+     * imageUrl:    'https://www.bing.com/images/blob?bcid=RN4.o2iFDe0FQHyYKZKmmOyc4Fs-.....-A'
+     * The returned "processBlobId" is used in the imageUrl like this:
+     * originalImageUrl:            'https://www.bing.com/images/blob?bcid=RH8TZGRI5-0FQHyYKZKmmOyc4Fs-.....zQ'
+     * @param {string} imageBase64 The base64 string of the image to upload to blob storage.
+     * @returns {object} An object containing the "blobId" and "processBlobId" for the image.
+     */
+    async uploadImage(imageBase64) {
+        let data;
+        try {
+            const knowledgeRequestBody = {
+                imageInfo: {},
+                knowledgeRequest: {
+                    invokedSkills: ['ImageById'],
+                    subscriptionId: 'Bing.Chat.Multimodal',
+                    invokedSkillsRequestData: { enableFaceBlur: true }, // enableFaceBlur has to be enabled, or you won't get a processBlobId
+                    convoData: { convoid: '', convotone: 'Creative' }, // convoId seems to be irrelevant
+                },
+            };
+
+            const body = '------WebKitFormBoundary\r\n'
+            + 'Content-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
+            + `${JSON.stringify(knowledgeRequestBody)}\r\n`
+            + '------WebKitFormBoundary\r\n'
+            + 'Content-Disposition: form-data; name="imageBase64"\r\n\r\n'
+            + `${imageBase64}\r\n`
+            + '------WebKitFormBoundary--\r\n';
+
+            const response = await fetch('https://www.bing.com/images/kblob', {
+                headers: {
+                    accept: '*/*',
+                    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary',
+                    cookie: this.options.cookies || `_U=${this.options.userToken}`,
+                    Referer: 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx',
+                    'Referrer-Policy': 'origin-when-cross-origin',
+                },
+                body,
+                method: 'POST',
+            });
+            if (response.ok) {
+                data = await response.json();
+            } else {
+                throw new Error(`HTTP error! Error: ${response.error}, Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+        return data;
+    }
+
+    /**
+     * Encodes strings from UTF-8 to Base64.
+     * @param {String} text Text that should be encoded into base64 from UTF-8.
+     * @returns {String} Base64 encoded string.
+     */
+    static convertTextToBase64(text) {
+        const base64String = Buffer.from(text, 'utf-8').toString('base64');
+
+        return base64String;
+    }
+
+    static getValidIPv4(ip) {
+        const match = !ip
+            || ip.match(/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([0-9]|[1-2][0-9]|3[0-2]))?$/);
+        if (match) {
+            if (match[5]) {
+                const mask = parseInt(match[5], 10);
+                let [a, b, c, d] = ip.split('.').map(x => parseInt(x, 10));
+                // eslint-disable-next-line no-bitwise
+                const max = (1 << (32 - mask)) - 1;
+                const rand = Math.floor(Math.random() * max);
+                d += rand;
+                c += Math.floor(d / 256);
+                d %= 256;
+                b += Math.floor(c / 256);
+                c %= 256;
+                a += Math.floor(b / 256);
+                b %= 256;
+                return `${a}.${b}.${c}.${d}`;
+            }
+            return ip;
+        }
+        return undefined;
+    }
+
+    /**
+     * Method to obtain a new cookie as an anonymous user. Excessive use may result in a temporary IP ban, so a usual user cookie should be preferred.
+     * However to remedy a potential temporary ban you may delete the "ANON" cookie in the browser storage.
+     * @returns A new cookie. May however be less usable than a regular cookie.
+     */
+    static async getNewCookie() {
+        try {
+            const response = await fetch('https://www.bing.com/turing/conversation/create', { method: 'GET' });
+            const header = response.headers.get('set-cookie');
+            const cookieValue = header.match(/MUIDB=([^;]+)/) ? header.match(/MUIDB=([^;]+)/)[1] : undefined;
+            return cookieValue;
+        } catch (error) {
+            console.error(error);
+        }
+        return undefined;
     }
 }
