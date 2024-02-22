@@ -511,6 +511,9 @@ export default class BingAIClient {
             case 'copilot':
                 personaString = 'fluxcopilot';
                 break;
+            case 'sydney':
+                personaString = 'fluxsydney';
+                break;
             default:
                 personaString = '';
         }
